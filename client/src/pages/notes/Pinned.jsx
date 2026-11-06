@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+
 import {
   Pin,
   Plus,
@@ -20,29 +21,9 @@ import {
 
 import { notesApi } from '../../services/index.js';
 import { NoteCard } from '../../components/notes/NoteCard.jsx';
-import {
-  PageLoader,
-  EmptyState,
-} from '../../components/ui/Spinner.jsx';
+import { PageLoader } from '../../components/ui/Spinner.jsx';
 
-// Automatically load a flower background from either location.
-const backgroundImages = {
-  ...import.meta.glob('../../../assets/background/*.{png,jpg,jpeg,webp}', {
-    eager: true,
-    query: '?url',
-    import: 'default',
-  }),
-  ...import.meta.glob('../../assets/background/*.{png,jpg,jpeg,webp}', {
-    eager: true,
-    query: '?url',
-    import: 'default',
-  }),
-};
-
-const flowerBackground =
-  Object.entries(backgroundImages).find(([path]) =>
-    /flower|lavender|background/i.test(path)
-  )?.[1] || Object.values(backgroundImages)[0];
+import lavenderBackground from '../../../assets/background/lavender.png';
 
 const midnightRose = '#8E3B63';
 
@@ -130,26 +111,16 @@ export default function Pinned() {
 
   return (
     <div
-      className="pinned-page relative isolate min-h-full overflow-hidden"
+      className="pinned-page relative isolate min-h-full overflow-hidden bg-background"
       style={{
-        backgroundColor: '#FAF5FC',
-        backgroundImage: flowerBackground
-          ? `url("${flowerBackground}")`
-          : 'radial-gradient(circle at 85% 10%, #E9D5FF, transparent 35%), radial-gradient(circle at 10% 90%, #F3D8EF, transparent 35%)',
+        backgroundImage: `url(${lavenderBackground})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center top',
         backgroundRepeat: 'no-repeat',
         backgroundAttachment: 'fixed',
       }}
     >
-      {/* Very light overlay. The flower image remains sharp. */}
-      <div
-        className="pointer-events-none absolute inset-0 -z-10"
-        style={{
-          background:
-            'linear-gradient(135deg, rgba(255,255,255,0.25), rgba(250,240,255,0.12))',
-        }}
-      />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-white/10 dark:bg-slate-950/10" />
 
       <style>{`
         .pinned-page {
@@ -161,6 +132,11 @@ export default function Pinned() {
           border: 1px solid rgba(190, 155, 220, 0.34);
           box-shadow: 0 5px 18px rgba(65, 35, 90, 0.07);
           backdrop-filter: none;
+        }
+
+        .dark .pinned-page .pinned-panel {
+          background: rgba(35, 24, 40, 0.91);
+          border-color: rgba(190, 130, 170, 0.2);
         }
 
         .pinned-page .pinned-note-grid .bn-card {
@@ -197,7 +173,8 @@ export default function Pinned() {
         .pinned-page .rose-outline {
           border: 1px solid rgba(142, 59, 99, 0.3);
           color: ${midnightRose};
-          background: rgba(255,255,255,0.92);
+          background: rgba(255, 255, 255, 0.92);
+          transition: background 180ms ease;
         }
 
         .pinned-page .rose-outline:hover {
@@ -205,31 +182,54 @@ export default function Pinned() {
         }
 
         .pinned-page .pinned-input {
-          background: rgba(255,255,255,0.94);
+          background: rgba(255, 255, 255, 0.94);
           border: 1px solid rgba(190, 155, 220, 0.4);
           color: #21152D;
+          transition: border-color 180ms ease, box-shadow 180ms ease;
         }
 
         .pinned-page .pinned-input:focus {
           border-color: ${midnightRose};
-          box-shadow: 0 0 0 3px rgba(142,59,99,0.09);
+          box-shadow: 0 0 0 3px rgba(142, 59, 99, 0.09);
         }
 
         .pinned-page .pinned-input::placeholder {
           color: #8B7B99;
         }
 
+        .pinned-page .pinned-input option {
+          background: white;
+          color: #21152D;
+        }
+
+        @media (max-width: 640px) {
+          .pinned-page {
+            background-attachment: scroll !important;
+          }
+
+          .pinned-page .pinned-note-grid {
+            gap: 14px;
+          }
+
+          .pinned-page .pinned-note-grid .bn-card:hover {
+            transform: none;
+          }
+        }
+
         @media (prefers-reduced-motion: reduce) {
-          .pinned-page * {
+          .pinned-page *,
+          .pinned-page *::before,
+          .pinned-page *::after {
             transition: none !important;
+            animation-duration: 0.01ms !important;
           }
         }
       `}</style>
 
-      <div className="relative mx-auto min-h-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
+      <main className="relative mx-auto min-h-full w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-9">
 
         {/* Breadcrumb */}
-        <div className="mb-8 flex items-center gap-2 text-sm font-medium text-[#594477]">
+        <div className="mb-7 flex flex-wrap items-center gap-2 text-sm font-medium text-[#594477]">
           <button
             type="button"
             onClick={() => navigate('/app')}
@@ -257,34 +257,35 @@ export default function Pinned() {
         </div>
 
         {/* Header */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-5">
-          <div className="flex items-center gap-4">
+        <div className="mb-7 flex flex-wrap items-center justify-between gap-5">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <div
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg"
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg sm:h-16 sm:w-16"
               style={{
                 background: 'linear-gradient(145deg, #A65A83, #71304F)',
               }}
             >
-              <Pin size={30} fill="currentColor" />
+              <Pin size={28} fill="currentColor" />
             </div>
 
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-[#21152D] sm:text-4xl">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold tracking-tight text-[#21152D] sm:text-3xl lg:text-4xl">
                 Pinned Notes
               </h1>
-              <p className="mt-1 text-base text-[#594477] sm:text-lg">
+              <p className="mt-1 text-sm text-[#594477] sm:text-base">
                 Keep your important thoughts within easy reach.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <button
               type="button"
               onClick={() => refetch()}
               disabled={isFetching}
               title="Refresh pinned notes"
-              className="rose-outline flex h-12 w-12 items-center justify-center rounded-xl shadow-sm disabled:opacity-50"
+              aria-label="Refresh pinned notes"
+              className="rose-outline flex h-11 w-11 shrink-0 items-center justify-center rounded-xl shadow-sm disabled:opacity-50 sm:h-12 sm:w-12"
             >
               <RefreshCw
                 size={19}
@@ -295,7 +296,7 @@ export default function Pinned() {
             <button
               type="button"
               onClick={() => navigate('/app/notes')}
-              className="rose-button flex h-12 items-center gap-2 rounded-xl px-5 font-semibold shadow-md"
+              className="rose-button flex h-11 flex-1 items-center justify-center gap-2 rounded-xl px-4 font-semibold shadow-md sm:h-12 sm:flex-none sm:px-5"
               style={buttonStyle}
             >
               <Plus size={19} />
@@ -305,32 +306,32 @@ export default function Pinned() {
         </div>
 
         {/* Statistics */}
-        <div className="mb-7 grid max-w-2xl grid-cols-2 gap-4">
-          <div className="pinned-panel flex items-center gap-4 rounded-2xl p-4 sm:p-5">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#F1E7FA] text-[#713A9B]">
-              <Pin size={25} />
+        <div className="mb-7 grid max-w-2xl grid-cols-2 gap-3 sm:gap-4">
+          <div className="pinned-panel flex min-w-0 items-center gap-3 rounded-2xl p-3 sm:gap-4 sm:p-5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F1E7FA] text-[#713A9B] sm:h-14 sm:w-14">
+              <Pin size={23} />
             </div>
 
-            <div>
-              <p className="text-sm font-medium text-[#594477]">
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-[#594477] sm:text-sm">
                 Total pinned
               </p>
-              <p className="mt-1 text-3xl font-bold tabular-nums text-[#21152D]">
+              <p className="mt-1 text-2xl font-bold tabular-nums text-[#21152D] sm:text-3xl">
                 {notes.length}
               </p>
             </div>
           </div>
 
-          <div className="pinned-panel flex items-center gap-4 rounded-2xl p-4 sm:p-5">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#F1E7FA] text-[#713A9B]">
-              <FileText size={25} />
+          <div className="pinned-panel flex min-w-0 items-center gap-3 rounded-2xl p-3 sm:gap-4 sm:p-5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F1E7FA] text-[#713A9B] sm:h-14 sm:w-14">
+              <FileText size={23} />
             </div>
 
-            <div>
-              <p className="text-sm font-medium text-[#594477]">
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-[#594477] sm:text-sm">
                 Showing
               </p>
-              <p className="mt-1 text-3xl font-bold tabular-nums text-[#21152D]">
+              <p className="mt-1 text-2xl font-bold tabular-nums text-[#21152D] sm:text-3xl">
                 {filteredNotes.length}
               </p>
             </div>
@@ -354,7 +355,7 @@ export default function Pinned() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search your pinned notes..."
-                  className="pinned-input h-12 w-full rounded-xl pl-12 pr-11 text-base outline-none transition"
+                  className="pinned-input h-12 w-full rounded-xl pl-12 pr-11 text-base outline-none"
                 />
 
                 {search && (
@@ -391,7 +392,7 @@ export default function Pinned() {
                 </div>
 
                 {/* View toggle */}
-                <div className="flex h-12 items-center rounded-xl border border-[#DCC9EA] bg-white p-1">
+                <div className="flex h-12 shrink-0 items-center rounded-xl border border-[#DCC9EA] bg-white p-1">
                   <button
                     type="button"
                     onClick={() => setView('grid')}
@@ -434,7 +435,7 @@ export default function Pinned() {
             </div>
 
             {search && (
-              <div className="mt-3 flex items-center justify-between border-t border-[#E9DDF1] pt-3">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#E9DDF1] pt-3">
                 <p className="text-sm text-[#594477]">
                   {filteredNotes.length} result
                   {filteredNotes.length !== 1 ? 's' : ''} for "{search}"
@@ -455,7 +456,7 @@ export default function Pinned() {
 
         {/* Error state */}
         {isError && (
-          <div className="pinned-panel rounded-2xl p-8 text-center">
+          <div className="pinned-panel rounded-2xl p-6 text-center sm:p-8">
             <p className="text-lg font-semibold text-[#21152D]">
               Unable to load pinned notes
             </p>
@@ -466,17 +467,18 @@ export default function Pinned() {
             <button
               type="button"
               onClick={() => refetch()}
-              className="rose-button mt-5 rounded-xl px-5 py-2.5 font-semibold"
+              disabled={isFetching}
+              className="rose-button mt-5 rounded-xl px-5 py-2.5 font-semibold disabled:opacity-60"
               style={buttonStyle}
             >
-              Try again
+              {isFetching ? 'Refreshing...' : 'Try again'}
             </button>
           </div>
         )}
 
         {/* Empty state */}
         {!isError && notes.length === 0 && (
-          <div className="pinned-panel rounded-2xl px-5 py-14 text-center">
+          <div className="pinned-panel rounded-2xl px-5 py-12 text-center sm:py-14">
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F1E7FA] text-[#713A9B]">
               <Pin size={29} />
             </div>
@@ -503,7 +505,7 @@ export default function Pinned() {
 
         {/* No search results */}
         {!isError && notes.length > 0 && filteredNotes.length === 0 && (
-          <div className="pinned-panel rounded-2xl px-5 py-16 text-center">
+          <div className="pinned-panel rounded-2xl px-5 py-12 text-center sm:py-16">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1E7FA] text-[#713A9B]">
               <SearchX size={26} />
             </div>
@@ -530,9 +532,9 @@ export default function Pinned() {
         {/* Notes collection */}
         {!isError && filteredNotes.length > 0 && (
           <>
-            <div className="pinned-panel mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-4">
+            <div className="pinned-panel mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-4 sm:px-5">
               <div>
-                <h2 className="text-xl font-bold text-[#21152D]">
+                <h2 className="text-lg font-bold text-[#21152D] sm:text-xl">
                   Your collection
                 </h2>
                 <p className="mt-0.5 text-sm text-[#705C80]">
@@ -554,13 +556,11 @@ export default function Pinned() {
             </div>
 
             <div
-              className={
-                `pinned-note-grid ${
-                  view === 'grid'
-                    ? 'grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3'
-                    : 'flex flex-col gap-4'
-                }`
-              }
+              className={`pinned-note-grid ${
+                view === 'grid'
+                  ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'
+                  : 'flex flex-col gap-4'
+              }`}
             >
               {filteredNotes.map((note) => (
                 <NoteCard key={note.id} note={note} />
@@ -584,7 +584,7 @@ export default function Pinned() {
             <div className="hidden h-px w-16 bg-[#D8BCE9] sm:block" />
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

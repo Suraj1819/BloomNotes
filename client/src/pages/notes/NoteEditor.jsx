@@ -78,6 +78,8 @@ import {
   excerptFromContent,
 } from '../../lib/utils.js';
 
+import lavenderBackground from '../../../assets/background/lavender.png';
+
 const EMPTY_CONTENT = {
   type: 'doc',
   content: [{ type: 'paragraph' }],
@@ -201,8 +203,8 @@ function IconButton({
       title={loading ? busyLabel : label}
       aria-label={loading ? busyLabel : label}
       className={`
-        inline-flex h-9 shrink-0 items-center justify-center gap-1.5
-        rounded-xl border px-2.5 sm:px-3
+        inline-flex h-9 min-w-fit shrink-0 items-center justify-center
+        gap-1.5 rounded-xl border px-3
         text-[11px] font-semibold sm:text-xs
         transition-all duration-200
         hover:-translate-y-0.5 hover:shadow-sm
@@ -222,11 +224,11 @@ function IconButton({
       `}
     >
       {loading ? (
-        <Loader2 size={14} className="animate-spin" />
+        <Loader2 size={14} className="shrink-0 animate-spin" />
       ) : done ? (
-        <Check size={14} />
+        <Check size={14} className="shrink-0" />
       ) : (
-        <Icon size={14} strokeWidth={2} />
+        <Icon size={14} strokeWidth={2} className="shrink-0" />
       )}
 
       <span className="whitespace-nowrap">
@@ -1225,37 +1227,44 @@ export default function NoteEditor() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="
-      relative mx-auto flex h-full min-h-0 w-full max-w-7xl
-      flex-col overflow-hidden
-      px-0 sm:px-4 sm:py-4 lg:px-6
-    ">
-
-      {/* Workspace Background */}
+    <div
+      className="
+        relative isolate mx-auto flex h-full min-h-0 w-full
+        max-w-7xl flex-col overflow-hidden bg-background
+        px-0 sm:px-4 sm:py-4 lg:px-6
+      "
+      style={{
+        backgroundImage: `url(${lavenderBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed',
+      }}
+    >
+      {/* Background Overlay */}
 
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
-      >
-        <div className="absolute -right-20 top-0 h-72 w-72 rounded-full bg-purple-200/20 blur-3xl dark:bg-purple-500/[0.04]" />
-        <div className="absolute -bottom-20 left-0 h-72 w-72 rounded-full bg-pink-200/20 blur-3xl dark:bg-rose-500/[0.04]" />
-      </div>
+        className="
+          pointer-events-none absolute inset-0 -z-10
+          bg-white/10 dark:bg-slate-950/10
+        "
+      />
 
       {/* Header */}
 
       <div className="
-        relative z-20 flex shrink-0 flex-wrap
-        items-center justify-between gap-2
+        relative z-20 flex shrink-0 flex-col
+        items-stretch gap-2
         border-b border-purple-100/70
         bg-white/75 px-3 py-2.5 backdrop-blur-xl
         dark:border-white/10 dark:bg-slate-950/70
-        sm:mb-4 sm:rounded-2xl sm:border
+        sm:mb-4 sm:flex-row sm:items-center
+        sm:justify-between sm:gap-3
+        sm:rounded-2xl sm:border
         sm:px-4 sm:py-3
         sm:shadow-[0_4px_20px_rgba(100,70,140,0.05)]
       ">
-
-        {/* Left Side */}
-
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
@@ -1297,94 +1306,100 @@ export default function NoteEditor() {
           </div>
         </div>
 
-        {/* Right Side - All Actions */}
+        {/* Right Side - Mobile Scrollable Actions */}
 
         <div className="
-          flex min-w-0 flex-1 flex-wrap
-          items-center justify-end gap-1.5
-          sm:flex-initial sm:gap-2
+          -mx-3 w-[calc(100%+1.5rem)] min-w-0
+          overflow-x-auto overscroll-x-contain
+          px-3 pb-1
+          [scrollbar-width:none]
+          [&::-webkit-scrollbar]:hidden
+          sm:mx-0 sm:w-auto sm:overflow-visible
+          sm:px-0 sm:pb-0
         ">
+          <div className="
+            flex min-w-max items-center justify-start gap-2
+            sm:min-w-0 sm:justify-end sm:gap-2
+          ">
+            <IconButton
+              icon={RefreshCw}
+              label="Refresh"
+              busyLabel="Refreshing..."
+              doneLabel="Refreshed"
+              onClick={handleRefresh}
+              loading={refreshing}
+              done={refreshFeedback === 'Refreshed'}
+              disabled={anyActionPending || refreshing}
+            />
 
-          <IconButton
-            icon={RefreshCw}
-            label="Refresh"
-            busyLabel="Refreshing..."
-            doneLabel="Refreshed"
-            onClick={handleRefresh}
-            loading={refreshing}
-            done={refreshFeedback === 'Refreshed'}
-            disabled={anyActionPending || refreshing}
-          />
+            <IconButton
+              icon={Pin}
+              label="Pin"
+              busyLabel={note?.is_pinned ? 'Unpinning...' : 'Pinning...'}
+              doneLabel={pinFeedbackLabel || 'Pinned'}
+              active={note?.is_pinned}
+              onClick={() => togglePin.mutate()}
+              loading={togglePin.isPending}
+              done={pinFeedback}
+              disabled={anyActionPending || refreshing}
+            />
 
-          <IconButton
-            icon={Pin}
-            label="Pin"
-            busyLabel={note?.is_pinned ? 'Unpinning...' : 'Pinning...'}
-            doneLabel={pinFeedbackLabel || 'Pinned'}
-            active={note?.is_pinned}
-            onClick={() => togglePin.mutate()}
-            loading={togglePin.isPending}
-            done={pinFeedback}
-            disabled={anyActionPending || refreshing}
-          />
+            <IconButton
+              icon={Star}
+              label="Favorite"
+              busyLabel={
+                note?.is_favorite ? 'Removing...' : 'Adding...'
+              }
+              doneLabel={favoriteFeedbackLabel || 'Added'}
+              active={note?.is_favorite}
+              onClick={() => toggleFav.mutate()}
+              loading={toggleFav.isPending}
+              done={favoriteFeedback}
+              disabled={anyActionPending || refreshing}
+            />
 
-          <IconButton
-            icon={Star}
-            label="Favorite"
-            busyLabel={
-              note?.is_favorite
-                ? 'Removing...'
-                : 'Adding...'
-            }
-            doneLabel={favoriteFeedbackLabel || 'Added'}
-            active={note?.is_favorite}
-            onClick={() => toggleFav.mutate()}
-            loading={toggleFav.isPending}
-            done={favoriteFeedback}
-            disabled={anyActionPending || refreshing}
-          />
+            <IconButton
+              icon={Archive}
+              label="Archive"
+              busyLabel="Archiving..."
+              doneLabel="Archived"
+              onClick={() => archive.mutate()}
+              loading={archive.isPending}
+              done={archiveFeedback}
+              disabled={anyActionPending || refreshing}
+            />
 
-          <IconButton
-            icon={Archive}
-            label="Archive"
-            busyLabel="Archiving..."
-            doneLabel="Archived"
-            onClick={() => archive.mutate()}
-            loading={archive.isPending}
-            done={archiveFeedback}
-            disabled={anyActionPending || refreshing}
-          />
+            <IconButton
+              icon={Trash2}
+              label="Delete"
+              busyLabel="Deleting..."
+              doneLabel="Deleted"
+              danger
+              onClick={handleDelete}
+              loading={remove.isPending}
+              done={deleteFeedback}
+              disabled={anyActionPending || refreshing}
+            />
 
-          <IconButton
-            icon={Trash2}
-            label="Delete"
-            busyLabel="Deleting..."
-            doneLabel="Deleted"
-            danger
-            onClick={handleDelete}
-            loading={remove.isPending}
-            done={deleteFeedback}
-            disabled={anyActionPending || refreshing}
-          />
-
-          <IconButton
-            icon={Save}
-            label="Save"
-            busyLabel="Saving..."
-            doneLabel="Saved"
-            onClick={handleManualSave}
-            loading={
-              manualSaveInFlightRef.current ||
-              saveState === 'saving'
-            }
-            done={saveFeedback === 'Saved'}
-            disabled={
-              saveState === 'saving' ||
-              manualSaveInFlightRef.current ||
-              anyActionPending ||
-              refreshing
-            }
-          />
+            <IconButton
+              icon={Save}
+              label="Save"
+              busyLabel="Saving..."
+              doneLabel="Saved"
+              onClick={handleManualSave}
+              loading={
+                saveFeedback === 'Saving...' ||
+                saveState === 'saving'
+              }
+              done={saveFeedback === 'Saved'}
+              disabled={
+                saveState === 'saving' ||
+                saveFeedback === 'Saving...' ||
+                anyActionPending ||
+                refreshing
+              }
+            />
+          </div>
         </div>
       </div>
 
@@ -1400,9 +1415,6 @@ export default function NoteEditor() {
         sm:backdrop-blur-sm
         dark:sm:bg-slate-900/30
       ">
-
-        {/* Title */}
-
         <div className="flex items-center gap-2">
           <input
             value={title}
@@ -1425,7 +1437,6 @@ export default function NoteEditor() {
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
-
           {/* Folder */}
 
           <div className="flex min-w-0 items-center gap-2">
@@ -1583,7 +1594,6 @@ export default function NoteEditor() {
         sm:rounded-2xl sm:border
         sm:shadow-[0_8px_30px_rgba(100,70,140,0.06)]
       ">
-
         <div
           className="h-[3px] w-full shrink-0 opacity-80"
           style={{
