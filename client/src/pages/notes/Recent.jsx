@@ -33,7 +33,7 @@ export default function Recent() {
       />
 
       {/* Background Overlay */}
-      <div className="absolute inset-0 z-0 bg-white/20 dark:bg-black/20" />
+      <div className="absolute inset-0 z-0 bg-white/10 dark:bg-black/10" />
 
       {/* Page Content */}
       <main className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6 py-8">

@@ -128,7 +128,7 @@ export default function Dashboard() {
       }}
     >
       {/* Background overlay */}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-white/65 dark:bg-slate-950/65" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-white/10 dark:bg-slate-950/10" />
 
       <div className="relative mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
 

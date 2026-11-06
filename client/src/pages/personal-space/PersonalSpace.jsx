@@ -1,16 +1,17 @@
 
-// src/pages/personal-space/PersonalSpace.jsx
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+
 import { personalSpaceApi } from '../../services/index.js';
+
 import { Button } from '../../components/ui/Button.jsx';
 import { Input, Textarea, Field } from '../../components/ui/Input.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Dialog } from '../../components/ui/Dialog.jsx';
 import { Switch } from '../../components/ui/Switch.jsx';
 import { PageLoader, EmptyState } from '../../components/ui/Spinner.jsx';
+
 import {
   Sparkles,
   Plus,
@@ -21,10 +22,15 @@ import {
   ListChecks,
   FileText,
   Code,
+  Clock3,
+  MoreVertical,
 } from 'lucide-react';
-import { relativeTime } from '../../lib/utils.js';
+
+import { relativeTime, cn } from '../../lib/utils.js';
 import { useConfirm, usePrompt } from '../../contexts/ConfirmContext.jsx';
+
 import lavenderBg from '../../../assets/background/lavender.png';
+import noteFlower from '../../../assets/background/note-card-flower.png';
 
 const KIND_META = {
   note: { label: 'Note', icon: FileText },
@@ -78,6 +84,7 @@ export default function PersonalSpace() {
       close();
       toast.success('Created');
     },
+    onError: (error) => toast.error(error.message || 'Could not create entry'),
   });
 
   const update = useMutation({
@@ -87,6 +94,7 @@ export default function PersonalSpace() {
       close();
       toast.success('Updated');
     },
+    onError: (error) => toast.error(error.message || 'Could not update entry'),
   });
 
   const remove = useMutation({
@@ -95,14 +103,17 @@ export default function PersonalSpace() {
       qc.invalidateQueries({ queryKey: ['ps-entries'] });
       toast.success('Deleted');
     },
+    onError: (error) => toast.error(error.message || 'Could not delete entry'),
   });
 
   const pin = useMutation({
     mutationFn: ({ id, val }) =>
       personalSpaceApi.updateEntry(id, { is_pinned: val }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ['ps-entries'] });
+      toast.success(variables.val ? 'Entry pinned' : 'Entry unpinned');
     },
+    onError: (error) => toast.error(error.message || 'Could not update pin'),
   });
 
   const createCat = useMutation({
@@ -111,6 +122,7 @@ export default function PersonalSpace() {
       qc.invalidateQueries({ queryKey: ['ps-cats'] });
       toast.success('Category created');
     },
+    onError: (error) => toast.error(error.message || 'Could not create category'),
   });
 
   const handleRemove = async (entry) => {
@@ -180,32 +192,31 @@ export default function PersonalSpace() {
   return (
     <div
       className="relative isolate min-h-full overflow-hidden"
-      style={{ fontFamily: 'Calibri, sans-serif' }}
+      style={{
+        backgroundImage: `url(${lavenderBg})`,
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: 'cover',
+        backgroundAttachment: 'fixed',
+      }}
     >
-      {/* Background */}
-      <div
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url("${lavenderBg}")` }}
-      />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-white/20 dark:bg-black/30" />
 
-      {/* Transparent Overlay */}
-      <div className="absolute inset-0 z-0 bg-white/20 dark:bg-black/20" />
-
-      <main className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6 py-8">
+      <main className="relative z-10 mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-7">
+        <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-white/85 dark:bg-gray-900/80 border border-[#E8D8FF] dark:border-white/10 shadow-sm">
-              <Sparkles size={20} className="text-[#6240C8]" />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/70 bg-white/70 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-gray-900/60">
+              <Sparkles size={20} className="text-[#7652C8] dark:text-purple-300" />
             </div>
 
             <div>
-              <h1 className="text-2xl font-bold text-[#10123D] dark:text-white">
+              <h1 className="text-2xl font-bold tracking-tight text-[#252044] dark:text-white">
                 Personal Space
               </h1>
 
-              <p className="text-sm text-[#51418F] dark:text-gray-300 mt-0.5">
+              <p className="mt-0.5 text-sm text-[#766A91] dark:text-gray-300">
                 Your private collection of notes, links and ideas.
               </p>
             </div>
@@ -217,9 +228,22 @@ export default function PersonalSpace() {
           </Button>
         </div>
 
+        {/* Entry Summary */}
+        {entries.length > 0 && (
+          <div className="mb-5 flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-white/70 bg-white/60 px-3 py-1.5 text-xs font-semibold text-[#6240C8] shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-gray-900/50 dark:text-purple-300">
+              {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+            </span>
+
+            <span className="rounded-full border border-white/70 bg-white/60 px-3 py-1.5 text-xs font-medium text-[#766A91] shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-gray-900/50 dark:text-gray-300">
+              {entries.filter((entry) => entry.is_pinned).length} pinned
+            </span>
+          </div>
+        )}
+
         {/* Entries */}
         {entries.length === 0 ? (
-          <div className="rounded-[22px] border border-[#E8D8FF] dark:border-white/10 bg-white/85 dark:bg-gray-900/85 p-6 shadow-sm">
+          <div className="rounded-3xl border border-white/60 bg-white/55 p-6 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-gray-900/50">
             <EmptyState
               icon={Sparkles}
               title="Empty personal space"
@@ -233,35 +257,78 @@ export default function PersonalSpace() {
             />
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {entries.map((entry) => {
               const Meta = KIND_META[entry.kind] || KIND_META.note;
               const KindIcon = Meta.icon;
 
+              const isPinning =
+                pin.isPending && pin.variables?.id === entry.id;
+
+              const isDeleting =
+                remove.isPending && remove.variables === entry.id;
+
               return (
                 <article
                   key={entry.id}
-                  className="group relative overflow-hidden rounded-[22px] border border-[#E8D8FF] dark:border-white/10 bg-white/90 dark:bg-gray-900/85 shadow-[0_4px_18px_rgba(98,64,200,0.07)] hover:shadow-[0_8px_26px_rgba(98,64,200,0.13)] hover:-translate-y-0.5 transition-all duration-200"
+                  className={cn(
+                    'group relative isolate flex min-h-[235px] flex-col',
+                    'overflow-hidden rounded-[22px]',
+                    'border border-white/70 bg-white/75',
+                    'shadow-[0_4px_14px_rgba(91,55,150,0.08)]',
+                    'transition-all duration-300',
+                    'hover:-translate-y-1 hover:border-[#CDA8FF]',
+                    'hover:shadow-[0_12px_28px_rgba(91,55,150,0.15)]',
+                    'dark:border-slate-700 dark:bg-slate-900/80'
+                  )}
                 >
-                  <div className="relative z-10 p-5">
+                  {/* Floral Image */}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -bottom-1 -right-1 z-0 h-[82%] w-[48%] bg-contain bg-right-bottom bg-no-repeat opacity-85 transition-transform duration-500 group-hover:scale-105"
+                    style={{
+                      backgroundImage: `url(${noteFlower})`,
+                    }}
+                  />
 
-                    {/* Card Top */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2 text-xs font-medium text-[#6240C8] dark:text-purple-300">
-                        <KindIcon size={15} />
-                        {Meta.label}
+                  {/* Readability Overlay */}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-r from-white via-white/95 to-white/10 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900/30"
+                  />
+
+                  <div className="relative z-10 flex min-h-[235px] flex-1 flex-col p-4 sm:p-5">
+
+                    {/* Card Header */}
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E8D8FF] bg-white/75 text-[#7652C8] shadow-sm dark:border-white/10 dark:bg-slate-800/80 dark:text-purple-300">
+                          <KindIcon size={18} />
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold text-[#6240C8] dark:text-purple-300">
+                            {Meta.label}
+                          </p>
+                          <p className="text-[11px] text-[#9387A8] dark:text-gray-400">
+                            Personal collection
+                          </p>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-1">
                         {entry.is_pinned && (
-                          <Pin
-                            size={13}
-                            className="text-[#6240C8] fill-[#6240C8]"
-                          />
+                          <span
+                            title="Pinned"
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F1E8FF] text-[#7652C8] dark:bg-purple-950/60 dark:text-purple-300"
+                          >
+                            <Pin size={14} fill="currentColor" />
+                          </span>
                         )}
 
                         <button
                           type="button"
+                          disabled={isPinning}
                           onClick={() =>
                             pin.mutate({
                               id: entry.id,
@@ -269,51 +336,66 @@ export default function PersonalSpace() {
                             })
                           }
                           title={entry.is_pinned ? 'Unpin' : 'Pin'}
-                          className={`p-1.5 rounded-lg hover:bg-[#F2EBFF] dark:hover:bg-white/10 transition-colors ${
+                          aria-label={entry.is_pinned ? 'Unpin entry' : 'Pin entry'}
+                          className={cn(
+                            'flex h-8 w-8 items-center justify-center rounded-full transition-colors',
+                            'hover:bg-[#F1E8FF] disabled:opacity-50 dark:hover:bg-white/10',
                             entry.is_pinned
-                              ? 'text-[#6240C8]'
+                              ? 'text-[#7652C8]'
                               : 'text-[#81749D] dark:text-gray-400'
-                          }`}
+                          )}
                         >
-                          <Pin size={14} />
+                          <Pin size={15} fill={entry.is_pinned ? 'currentColor' : 'none'} />
                         </button>
 
                         <button
                           type="button"
                           onClick={() => open(entry)}
                           title="Edit"
-                          className="p-1.5 rounded-lg text-[#81749D] dark:text-gray-400 hover:text-[#6240C8] hover:bg-[#F2EBFF] dark:hover:bg-white/10 transition-colors"
+                          aria-label="Edit entry"
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-[#81749D] transition-colors hover:bg-[#F1E8FF] hover:text-[#6240C8] dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-purple-300"
                         >
-                          <Pencil size={14} />
+                          <Pencil size={15} />
                         </button>
 
                         <button
                           type="button"
+                          disabled={isDeleting}
                           onClick={() => handleRemove(entry)}
                           title="Delete"
-                          className="p-1.5 rounded-lg text-[#81749D] dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                          aria-label="Delete entry"
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-[#81749D] transition-colors hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:text-gray-400 dark:hover:bg-red-500/10"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     </div>
 
                     {/* Card Content */}
-                    <h3 className="text-base font-semibold text-[#10123D] dark:text-white mb-2 break-words">
-                      {entry.title || 'Untitled'}
-                    </h3>
+                    <div className="flex-1">
+                      <h3 className="mb-2 break-words text-lg font-bold leading-snug text-[#252044] dark:text-slate-100">
+                        {entry.title || 'Untitled'}
+                      </h3>
 
-                    <p className="text-sm leading-relaxed text-[#51418F] dark:text-gray-300 line-clamp-4 whitespace-pre-wrap break-words min-h-[3.5rem]">
-                      {entry.content}
-                    </p>
-
-                    {/* Footer */}
-                    <div className="mt-4 pt-3 border-t border-[#EDE2FA] dark:border-white/10">
-                      <p className="text-xs text-[#8B7DA8] dark:text-gray-400">
-                        Updated {relativeTime(entry.updated_at)}
+                      <p className="line-clamp-4 min-h-[3.5rem] whitespace-pre-wrap break-words text-sm leading-relaxed text-[#51418F] dark:text-slate-300">
+                        {entry.content || 'No additional content'}
                       </p>
                     </div>
 
+                    {/* Footer */}
+                    <div className="mt-4 flex items-center justify-between gap-2 border-t border-[#EDE2FA] pt-3 dark:border-slate-700">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Clock3 size={14} className="shrink-0 text-[#81749D] dark:text-gray-400" />
+
+                        <span className="truncate text-xs font-medium text-[#766A91] dark:text-gray-400">
+                          {relativeTime(entry.updated_at)}
+                        </span>
+                      </div>
+
+                      <span className="shrink-0 rounded-full border border-[#E8D8FF] bg-white/75 px-2.5 py-1 text-[10px] font-semibold text-[#7652C8] dark:border-white/10 dark:bg-slate-800/80 dark:text-purple-300">
+                        {Meta.label}
+                      </span>
+                    </div>
                   </div>
                 </article>
               );
@@ -339,8 +421,8 @@ export default function PersonalSpace() {
             </>
           }
         >
-          <div className="space-y-4" style={{ fontFamily: 'Calibri, sans-serif' }}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Kind">
                 <Select
                   value={form.kind}
@@ -358,7 +440,7 @@ export default function PersonalSpace() {
 
               <Field label="Category">
                 <div className="flex gap-2">
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <Select
                       value={form.category_id}
                       onChange={(e) =>
@@ -427,7 +509,6 @@ export default function PersonalSpace() {
             </div>
           </div>
         </Dialog>
-
       </main>
     </div>
   );

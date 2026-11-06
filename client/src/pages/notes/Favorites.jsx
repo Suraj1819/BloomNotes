@@ -19,7 +19,7 @@ import {
   Heart,
 } from 'lucide-react';
 
-import lavenderBg from '../../../assets/background/lavender.png';
+import lavenderBg from '../../../assets/background/green.png';
 
 export default function Favorites() {
   const navigate = useNavigate();
@@ -53,7 +53,7 @@ export default function Favorites() {
       }}
     >
       {/* Background overlay */}
-      <div className="absolute inset-0 bg-white/20 dark:bg-black/20 pointer-events-none" />
+      <div className="absolute inset-0 bg-white/10 dark:bg-black/10 pointer-events-none" />
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
 

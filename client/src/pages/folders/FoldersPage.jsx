@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Search,
   X,
+  Check,
 } from 'lucide-react';
 
 import { foldersApi } from '../../services/index.js';
@@ -44,7 +45,6 @@ export default function FoldersPage() {
   const [name, setName] = useState('');
   const [search, setSearch] = useState('');
 
-  // Fetch folders
   const {
     data: folders = [],
     isLoading,
@@ -55,7 +55,6 @@ export default function FoldersPage() {
     queryFn: () => foldersApi.list(),
   });
 
-  // Create folder
   const create = useMutation({
     mutationFn: (body) => foldersApi.create(body),
 
@@ -71,7 +70,6 @@ export default function FoldersPage() {
     },
   });
 
-  // Update folder
   const update = useMutation({
     mutationFn: ({ id, body }) => foldersApi.update(id, body),
 
@@ -79,7 +77,7 @@ export default function FoldersPage() {
       qc.invalidateQueries({ queryKey: ['folders'] });
       setEditing(null);
       setName('');
-      toast.success('Folder updated');
+      toast.success('Folder renamed');
     },
 
     onError: (error) => {
@@ -87,7 +85,6 @@ export default function FoldersPage() {
     },
   });
 
-  // Delete folder
   const remove = useMutation({
     mutationFn: (id) => foldersApi.remove(id),
 
@@ -101,14 +98,12 @@ export default function FoldersPage() {
     },
   });
 
-  // Filter folders
   const filteredFolders = useMemo(() => {
     return folders.filter((folder) =>
       folder.name?.toLowerCase().includes(search.trim().toLowerCase())
     );
   }, [folders, search]);
 
-  // Create handler
   const handleCreate = () => {
     const trimmed = name.trim();
 
@@ -120,12 +115,28 @@ export default function FoldersPage() {
     create.mutate({ name: trimmed });
   };
 
-  // Rename handler
+  const startEditing = (folder) => {
+    setEditing(folder);
+    setName(folder.name || '');
+  };
+
+  const cancelEditing = () => {
+    if (update.isPending) return;
+
+    setEditing(null);
+    setName('');
+  };
+
   const handleUpdate = () => {
     const trimmed = name.trim();
 
     if (!trimmed || !editing) {
       toast.error('Please enter a folder name');
+      return;
+    }
+
+    if (trimmed === editing.name) {
+      cancelEditing();
       return;
     }
 
@@ -135,7 +146,6 @@ export default function FoldersPage() {
     });
   };
 
-  // Delete handler
   const handleRemove = async (folder) => {
     const confirmed = await confirm({
       title: 'Delete folder?',
@@ -149,7 +159,6 @@ export default function FoldersPage() {
     }
   };
 
-  // Date formatting
   const formatDate = (date) => {
     if (!date) return 'Folder';
 
@@ -172,7 +181,7 @@ export default function FoldersPage() {
 
   if (isError) {
     return (
-      <div className="p-8 text-center font-['Calibri',sans-serif]">
+      <div className="p-8 text-center">
         <FolderOpen
           size={32}
           className="mx-auto mb-3 text-text-muted"
@@ -191,7 +200,7 @@ export default function FoldersPage() {
 
   return (
     <div
-      className="relative min-h-full overflow-hidden font-['Calibri',sans-serif]"
+      className="relative min-h-full overflow-hidden"
       style={{
         backgroundImage: `url(${lavenderBg})`,
         backgroundSize: 'cover',
@@ -199,14 +208,12 @@ export default function FoldersPage() {
         backgroundAttachment: 'fixed',
       }}
     >
-      {/* Background overlay */}
-      <div className="pointer-events-none absolute inset-0 bg-white/55 dark:bg-black/45" />
+      <div className="pointer-events-none absolute inset-0 bg-white/10 dark:bg-black/10" />
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
 
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F1E8FF] text-[#6240C8] dark:bg-purple-950/50 dark:text-purple-400">
               <FolderOpen size={23} />
@@ -237,7 +244,6 @@ export default function FoldersPage() {
 
         {/* Search */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
           <div className="relative w-full sm:max-w-sm">
             <Search
               size={16}
@@ -305,101 +311,178 @@ export default function FoldersPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredFolders.map((folder) => {
+              const isEditing = editing?.id === folder.id;
 
-            {filteredFolders.map((folder) => (
-              <article
-                key={folder.id}
-                onClick={() => navigate(`/app/folders/${folder.id}`)}
-                className="group relative isolate min-h-[190px] cursor-pointer overflow-hidden rounded-[22px] border border-[#E8D8FF] bg-white shadow-[0_4px_12px_rgba(91,55,150,0.09)] transition-all duration-300 hover:-translate-y-1 hover:border-[#CDA8FF] hover:shadow-[0_12px_28px_rgba(91,55,150,0.15)] dark:border-slate-700 dark:bg-slate-900"
-                style={{
-                  fontFamily: 'Calibri, Arial, sans-serif',
-                }}
-              >
-                {/* Floral background */}
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -bottom-1 -right-1 z-0 h-[82%] w-[48%] bg-contain bg-right-bottom bg-no-repeat opacity-85 transition-transform duration-500 group-hover:scale-105"
-                  style={{
-                    backgroundImage: `url(${noteFlower})`,
+              return (
+                <article
+                  key={folder.id}
+                  onClick={() => {
+                    if (!isEditing) {
+                      navigate(`/app/folders/${folder.id}`);
+                    }
                   }}
-                />
+                  className={`group relative isolate min-h-[190px] overflow-hidden rounded-[22px] border border-[#E8D8FF] bg-white shadow-[0_4px_12px_rgba(91,55,150,0.09)] transition-all duration-300 hover:border-[#CDA8FF] hover:shadow-[0_12px_28px_rgba(91,55,150,0.15)] dark:border-slate-700 dark:bg-slate-900 ${
+                    isEditing
+                      ? 'cursor-default ring-2 ring-[#CDA8FF]/40'
+                      : 'cursor-pointer hover:-translate-y-1'
+                  }`}
+                >
+                  {/* Floral background */}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -bottom-1 -right-1 z-0 h-[82%] w-[48%] bg-contain bg-right-bottom bg-no-repeat opacity-85 transition-transform duration-500 group-hover:scale-105"
+                    style={{
+                      backgroundImage: `url(${noteFlower})`,
+                    }}
+                  />
 
-                {/* Readability overlay */}
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-r from-white via-white/95 to-white/10 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900/30"
-                />
+                  {/* Readability overlay */}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-r from-white via-white/95 to-white/10 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900/30"
+                  />
 
-                <div className="relative z-10 flex min-h-[190px] flex-col p-4 sm:p-5">
+                  <div className="relative z-10 flex min-h-[190px] flex-col p-4 sm:p-5">
 
-                  {/* Card header */}
-                  <div className="mb-4 flex items-start justify-between gap-3">
+                    {/* Card header */}
+                    <div className="mb-4 flex items-start justify-between gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F1E8FF] text-[#6240C8] dark:bg-purple-950/50 dark:text-purple-400">
+                        <FolderIcon size={22} />
+                      </div>
 
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F1E8FF] text-[#6240C8] dark:bg-purple-950/50 dark:text-purple-400">
-                      <FolderIcon size={22} />
+                      {!isEditing && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              startEditing(folder);
+                            }}
+                            aria-label="Rename folder"
+                            title="Rename"
+                            className="flex h-9 w-9 items-center justify-center rounded-xl text-[#51418F] transition hover:bg-[#F1E8FF] dark:text-slate-300 dark:hover:bg-slate-800"
+                          >
+                            <Pencil size={16} />
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={remove.isPending}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleRemove(folder);
+                            }}
+                            aria-label="Delete folder"
+                            title="Delete"
+                            className="flex h-9 w-9 items-center justify-center rounded-xl text-[#51418F] transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-red-950/30"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-1">
+                    {/* Inline rename area */}
+                    <div
+                      className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
+                        isEditing
+                          ? 'grid-rows-[1fr] opacity-100'
+                          : 'grid-rows-[0fr] opacity-0'
+                      }`}
+                    >
+                      <div className="min-h-0 overflow-hidden">
+                        {isEditing && (
+                          <div
+                            className="mb-3 space-y-3"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <label className="block text-xs font-semibold text-[#6240C8] dark:text-purple-300">
+                              Rename folder
+                            </label>
 
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setEditing(folder);
-                          setName(folder.name);
-                        }}
-                        aria-label="Rename folder"
-                        title="Rename"
-                        className="flex h-9 w-9 items-center justify-center rounded-xl text-[#51418F] transition hover:bg-[#F1E8FF] dark:text-slate-300 dark:hover:bg-slate-800"
-                      >
-                        <Pencil size={16} />
-                      </button>
+                            <Input
+                              value={name}
+                              onChange={(event) => setName(event.target.value)}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter' && !update.isPending) {
+                                  handleUpdate();
+                                }
 
-                      <button
-                        type="button"
-                        disabled={remove.isPending}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleRemove(folder);
-                        }}
-                        aria-label="Delete folder"
-                        title="Delete"
-                        className="flex h-9 w-9 items-center justify-center rounded-xl text-[#51418F] transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-red-950/30"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                                if (event.key === 'Escape') {
+                                  cancelEditing();
+                                }
+                              }}
+                              placeholder="Enter folder name"
+                              autoFocus
+                              maxLength={80}
+                              disabled={update.isPending}
+                              className="border-[#DCC8FA] bg-white/90 dark:border-slate-600 dark:bg-slate-800"
+                            />
+
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                onClick={handleUpdate}
+                                disabled={update.isPending || !name.trim()}
+                              >
+                                <Check size={14} />
+                                {update.isPending ? 'Saving...' : 'Save'}
+                              </Button>
+
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={cancelEditing}
+                                disabled={update.isPending}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Folder name */}
+                    {!isEditing && (
+                      <>
+                        <h3 className="mb-1 line-clamp-2 text-lg font-bold leading-snug text-[#10123D] dark:text-slate-100 sm:text-xl">
+                          {folder.name || 'Untitled folder'}
+                        </h3>
+
+                        <p className="mb-3 line-clamp-2 max-w-[88%] text-sm leading-relaxed text-[#51418F] dark:text-slate-300">
+                          Keep your notes organized in this folder.
+                        </p>
+                      </>
+                    )}
+
+                    {/* Card footer */}
+                    <div className="mt-auto flex items-center justify-between gap-2 border-t border-[#EDE2FA] pt-3 dark:border-slate-700">
+                      <span className="truncate text-xs font-medium text-[#51418F] dark:text-slate-400">
+                        {formatDate(folder.created_at)}
+                      </span>
+
+                      {!isEditing && (
+                        <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-[#6240C8] dark:text-purple-400">
+                          Open folder
+                          <ArrowRight
+                            size={14}
+                            className="transition-transform group-hover:translate-x-1"
+                          />
+                        </span>
+                      )}
+
+                      {isEditing && (
+                        <span className="text-xs font-medium text-[#6240C8] dark:text-purple-400">
+                          Editing
+                        </span>
+                      )}
                     </div>
                   </div>
-
-                  {/* Folder name */}
-                  <h3 className="mb-1 line-clamp-2 text-lg font-bold leading-snug text-[#10123D] dark:text-slate-100 sm:text-xl">
-                    {folder.name || 'Untitled folder'}
-                  </h3>
-
-                  <p className="mb-3 line-clamp-2 max-w-[88%] text-sm leading-relaxed text-[#51418F] dark:text-slate-300">
-                    Keep your notes organized in this folder.
-                  </p>
-
-                  {/* Card footer */}
-                  <div className="mt-auto flex items-center justify-between gap-2 border-t border-[#EDE2FA] pt-3 dark:border-slate-700">
-
-                    <span className="truncate text-xs font-medium text-[#51418F] dark:text-slate-400">
-                      {formatDate(folder.created_at)}
-                    </span>
-
-                    <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-[#6240C8] dark:text-purple-400">
-                      Open folder
-                      <ArrowRight
-                        size={14}
-                        className="transition-transform group-hover:translate-x-1"
-                      />
-                    </span>
-                  </div>
-                </div>
-              </article>
-            ))}
-
+                </article>
+              );
+            })}
           </div>
         )}
       </div>
@@ -440,50 +523,6 @@ export default function FoldersPage() {
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !create.isPending) {
                 handleCreate();
-              }
-            }}
-            placeholder="Enter folder name"
-            autoFocus
-            maxLength={80}
-          />
-        </Field>
-      </Dialog>
-
-      {/* Rename folder dialog */}
-      <Dialog
-        open={!!editing}
-        onClose={() => {
-          if (!update.isPending) {
-            setEditing(null);
-          }
-        }}
-        title="Rename folder"
-        footer={
-          <>
-            <Button
-              variant="ghost"
-              onClick={() => setEditing(null)}
-              disabled={update.isPending}
-            >
-              Cancel
-            </Button>
-
-            <Button
-              onClick={handleUpdate}
-              disabled={update.isPending || !name.trim()}
-            >
-              {update.isPending ? 'Saving...' : 'Save changes'}
-            </Button>
-          </>
-        }
-      >
-        <Field label="Folder name">
-          <Input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !update.isPending) {
-                handleUpdate();
               }
             }}
             placeholder="Enter folder name"

@@ -1,6 +1,4 @@
 
-// src/pages/journal/Journal.jsx
-
 import { useState } from 'react';
 import {
   useQuery,
@@ -34,12 +32,26 @@ import {
   CalendarDays,
   Search,
   X,
+  Bold,
+  Italic,
+  Strikethrough,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
+  Quote,
+  Code,
+  Minus,
+  Undo2,
+  Redo2,
+  AlignLeft,
+  Sparkles,
+  PenLine,
 } from 'lucide-react';
 
 import { excerptFromContent } from '../../lib/utils.js';
 import { useConfirm } from '../../contexts/ConfirmContext.jsx';
 
-import lavenderBg from '../../../assets/background/lavender.png';
 import noteFlower from '../../../assets/background/note-card-flower.png';
 
 const MOODS = [
@@ -53,7 +65,14 @@ const MOODS = [
   { id: 'tired', label: 'Tired', emoji: '😴', color: '#8B5CF6' },
 ];
 
-const getToday = () => new Date().toISOString().slice(0, 10);
+const getToday = () => {
+  const date = new Date();
+  const localDate = new Date(
+    date.getTime() - date.getTimezoneOffset() * 60000
+  );
+
+  return localDate.toISOString().slice(0, 10);
+};
 
 const formatDate = (date) => {
   if (!date) return '';
@@ -79,7 +98,6 @@ export default function Journal() {
   const [entryDate, setEntryDate] = useState(getToday());
   const [search, setSearch] = useState('');
 
-  // Fetch journal entries
   const {
     data,
     isLoading,
@@ -90,12 +108,12 @@ export default function Journal() {
     queryFn: () => journalApi.list({ limit: 200 }),
   });
 
-  // Journal editor
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({
-        placeholder: 'How did today bloom?',
+        placeholder:
+          'Start writing your thoughts here...\n\nWhat happened today? What made you smile? What are you grateful for?',
       }),
     ],
     content: {
@@ -105,13 +123,11 @@ export default function Journal() {
     editorProps: {
       attributes: {
         class:
-          'ProseMirror min-h-[250px] p-4 outline-none text-[#51418F] dark:text-slate-300',
-        style: 'font-family: Calibri, Arial, sans-serif;',
+          'ProseMirror journal-prose min-h-[280px] px-5 py-5 sm:px-7 sm:py-6 outline-none text-[#51418F] dark:text-slate-200',
       },
     },
   });
 
-  // Close editor
   const closeEditor = () => {
     setEditing(null);
     setTitle('');
@@ -120,7 +136,6 @@ export default function Journal() {
     editor?.commands.clearContent();
   };
 
-  // Create entry
   const create = useMutation({
     mutationFn: (body) => journalApi.create(body),
 
@@ -133,7 +148,6 @@ export default function Journal() {
     onError: (error) => toast.error(error.message),
   });
 
-  // Update entry
   const update = useMutation({
     mutationFn: ({ id, body }) => journalApi.update(id, body),
 
@@ -146,7 +160,6 @@ export default function Journal() {
     onError: (error) => toast.error(error.message),
   });
 
-  // Delete entry
   const remove = useMutation({
     mutationFn: (id) => journalApi.remove(id),
 
@@ -158,7 +171,6 @@ export default function Journal() {
     onError: (error) => toast.error(error.message),
   });
 
-  // Open editor
   const openEditor = (entry) => {
     setEditing(entry);
 
@@ -177,12 +189,10 @@ export default function Journal() {
       setTitle('');
       setMood('calm');
       setEntryDate(getToday());
-
       editor?.commands.clearContent();
     }
   };
 
-  // Save entry
   const save = () => {
     if (!editor) return;
 
@@ -203,7 +213,6 @@ export default function Journal() {
     }
   };
 
-  // Delete confirmation
   const handleRemove = async (entry) => {
     const ok = await confirm({
       title: 'Delete journal entry?',
@@ -233,17 +242,42 @@ export default function Journal() {
 
   const isSaving = create.isPending || update.isPending;
 
+  const toolbarButton = (
+    label,
+    icon,
+    action,
+    isActive = false,
+    disabled = false
+  ) => {
+    const Icon = icon;
+
+    return (
+      <button
+        key={label}
+        type="button"
+        title={label}
+        aria-label={label}
+        disabled={disabled}
+        onClick={action}
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-30 ${
+          isActive
+            ? 'bg-[#EDE4FF] text-[#7045C5] shadow-sm dark:bg-purple-500/20 dark:text-purple-300'
+            : 'text-[#67578F] hover:bg-[#F2EDFA] hover:text-[#7045C5] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-purple-300'
+        }`}
+      >
+        <Icon size={17} strokeWidth={2} />
+      </button>
+    );
+  };
+
   if (isLoading) {
     return <PageLoader />;
   }
 
   if (isError) {
     return (
-      <div className="p-8 text-center font-['Calibri',sans-serif]">
-        <BookOpen
-          size={32}
-          className="mx-auto mb-3 text-text-muted"
-        />
+      <div className="p-8 text-center">
+        <BookOpen size={32} className="mx-auto mb-3 text-text-muted" />
 
         <p className="mb-4 text-text-main">
           Unable to load journal entries.
@@ -257,23 +291,11 @@ export default function Journal() {
   }
 
   return (
-    <div
-      className="relative min-h-full overflow-hidden font-['Calibri',sans-serif]"
-      style={{
-        backgroundImage: `url(${lavenderBg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-      }}
-    >
-      {/* Background overlay */}
-      <div className="pointer-events-none absolute inset-0 bg-white/55 dark:bg-black/45" />
-
+    <div className="relative min-h-full overflow-hidden">
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
 
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F1E8FF] text-[#6240C8] dark:bg-purple-950/50 dark:text-purple-400">
               <BookOpen size={23} />
@@ -301,7 +323,6 @@ export default function Journal() {
 
         {/* Search */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
           <div className="relative w-full sm:max-w-sm">
             <Search
               size={16}
@@ -332,7 +353,7 @@ export default function Journal() {
           </span>
         </div>
 
-        {/* Journal heading */}
+        {/* Section heading */}
         <div className="mb-5 flex items-center justify-between border-b border-[#E8D8FF] pb-3 dark:border-slate-700">
           <div>
             <h2 className="text-lg font-bold text-[#10123D] dark:text-slate-100">
@@ -345,9 +366,9 @@ export default function Journal() {
           </div>
         </div>
 
-        {/* Empty state */}
+        {/* Entries */}
         {entries.length === 0 ? (
-          <div className="rounded-[22px] border border-[#E8D8FF] bg-white/75 px-5 py-12 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+          <div className="rounded-[22px] border border-[#E8D8FF] bg-white/75 px-5 py-12 shadow-sm backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/70">
             <EmptyState
               icon={BookOpen}
               title="No journal entries"
@@ -361,11 +382,8 @@ export default function Journal() {
             />
           </div>
         ) : filteredEntries.length === 0 ? (
-          <div className="rounded-[22px] border border-[#E8D8FF] bg-white/75 px-5 py-12 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
-            <Search
-              size={28}
-              className="mx-auto mb-3 text-[#62529D]"
-            />
+          <div className="rounded-[22px] border border-[#E8D8FF] bg-white/75 px-5 py-12 text-center shadow-sm backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/70">
+            <Search size={28} className="mx-auto mb-3 text-[#62529D]" />
 
             <p className="font-semibold text-[#10123D] dark:text-slate-100">
               No matching entries
@@ -377,7 +395,6 @@ export default function Journal() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-
             {filteredEntries.map((entry) => {
               const moodMeta = MOODS.find(
                 (item) => item.id === entry.mood
@@ -386,12 +403,8 @@ export default function Journal() {
               return (
                 <article
                   key={entry.id}
-                  className="group relative isolate flex min-h-[210px] flex-col overflow-hidden rounded-[22px] border border-[#E8D8FF] bg-white shadow-[0_4px_12px_rgba(91,55,150,0.09)] transition-all duration-300 hover:-translate-y-1 hover:border-[#CDA8FF] hover:shadow-[0_12px_28px_rgba(91,55,150,0.15)] dark:border-slate-700 dark:bg-slate-900"
-                  style={{
-                    fontFamily: 'Calibri, Arial, sans-serif',
-                  }}
+                  className="group relative isolate flex min-h-[210px] flex-col overflow-hidden rounded-[22px] border border-[#E8D8FF] bg-white/85 shadow-[0_4px_12px_rgba(91,55,150,0.09)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-[#CDA8FF] hover:shadow-[0_12px_28px_rgba(91,55,150,0.15)] dark:border-slate-700 dark:bg-slate-900/85"
                 >
-                  {/* Floral background */}
                   <div
                     aria-hidden="true"
                     className="pointer-events-none absolute -bottom-1 -right-1 z-0 h-[82%] w-[48%] bg-contain bg-right-bottom bg-no-repeat opacity-80 transition-transform duration-500 group-hover:scale-105"
@@ -400,17 +413,13 @@ export default function Journal() {
                     }}
                   />
 
-                  {/* Overlay */}
                   <div
                     aria-hidden="true"
                     className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-r from-white via-white/95 to-white/10 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900/30"
                   />
 
                   <div className="relative z-10 flex flex-1 flex-col p-4 sm:p-5">
-
-                    {/* Card header */}
                     <div className="mb-4 flex items-start justify-between gap-3">
-
                       <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F1E8FF] text-2xl dark:bg-purple-950/50">
                         {moodMeta?.emoji || '📝'}
                       </div>
@@ -439,20 +448,16 @@ export default function Journal() {
                       </div>
                     </div>
 
-                    {/* Title */}
                     <h3 className="mb-2 line-clamp-2 text-lg font-bold leading-snug text-[#10123D] dark:text-slate-100">
                       {entry.title || 'Untitled entry'}
                     </h3>
 
-                    {/* Description */}
                     <p className="mb-4 line-clamp-3 max-w-[90%] text-sm leading-relaxed text-[#51418F] dark:text-slate-300">
                       {excerptFromContent(entry.content) ||
                         'A personal moment captured in your journal.'}
                     </p>
 
-                    {/* Footer */}
                     <div className="mt-auto flex items-center justify-between gap-2 border-t border-[#EDE2FA] pt-3 dark:border-slate-700">
-
                       <div className="flex min-w-0 items-center gap-2">
                         <CalendarDays
                           size={14}
@@ -479,52 +484,81 @@ export default function Journal() {
                 </article>
               );
             })}
-
           </div>
         )}
       </div>
 
-      {/* Journal editor dialog */}
+      {/* Journal Editor */}
       <Dialog
         open={!!editing}
         onClose={() => {
           if (!isSaving) closeEditor();
         }}
-        title={editing === 'new' ? 'New journal entry' : 'Edit entry'}
+        title={editing === 'new' ? 'Create journal entry' : 'Edit journal entry'}
         size="lg"
         footer={
-          <>
-            <Button
-              variant="ghost"
-              onClick={closeEditor}
-              disabled={isSaving}
-            >
-              Cancel
-            </Button>
+          <div className="flex w-full items-center justify-between gap-3">
+            <span className="hidden text-xs text-[#8B7BAF] sm:block dark:text-slate-500">
+              Your thoughts, your private space.
+            </span>
 
-            <Button
-              onClick={save}
-              disabled={isSaving || !editor}
-            >
-              {isSaving ? 'Saving...' : 'Save entry'}
-            </Button>
-          </>
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                variant="ghost"
+                onClick={closeEditor}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                onClick={save}
+                disabled={isSaving || !editor}
+              >
+                {isSaving ? 'Saving...' : 'Save entry'}
+              </Button>
+            </div>
+          </div>
         }
       >
-        <div className="space-y-4 font-['Calibri',sans-serif]">
+        <div className="space-y-5">
 
-          <Field label="Title">
+          {/* Editor introduction */}
+          <div className="flex items-center gap-3 rounded-2xl border border-[#E9DFFF] bg-gradient-to-r from-[#F8F3FF]/90 to-[#FFF5FA]/90 p-4 dark:border-purple-900/50 dark:from-purple-950/30 dark:to-pink-950/20">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/90 text-[#8056C7] shadow-sm dark:bg-slate-800 dark:text-purple-300">
+              <PenLine size={19} />
+            </div>
+
+            <div className="min-w-0">
+              <p className="font-semibold text-[#38265F] dark:text-slate-100">
+                A little space for your thoughts
+              </p>
+
+              <p className="mt-0.5 text-xs text-[#806EAA] dark:text-slate-400">
+                Write freely. Every little moment matters.
+              </p>
+            </div>
+
+            <Sparkles
+              size={19}
+              className="ml-auto shrink-0 text-[#B18AE8]"
+            />
+          </div>
+
+          {/* Title */}
+          <Field label="Entry title">
             <Input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="Today's bloom"
+              placeholder="Give your day a title..."
               maxLength={150}
+              className="h-12 rounded-xl border-[#E5D8F7] bg-white/80 text-base font-semibold dark:border-slate-700 dark:bg-slate-900/80"
             />
           </Field>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-
-            <Field label="Mood">
+          {/* Mood and Date */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="How are you feeling?">
               <Select
                 value={mood}
                 onChange={(event) => setMood(event.target.value)}
@@ -537,25 +571,279 @@ export default function Journal() {
               </Select>
             </Field>
 
-            <Field label="Date">
+            <Field label="Entry date">
               <Input
                 type="date"
                 value={entryDate}
                 onChange={(event) => setEntryDate(event.target.value)}
+                className="h-11 rounded-xl border-[#E5D8F7] bg-white/80 dark:border-slate-700 dark:bg-slate-900/80"
               />
             </Field>
-
           </div>
 
-          {/* Editor */}
-          <Field label="Your thoughts">
-            <div className="overflow-hidden rounded-2xl border border-[#E8D8FF] bg-white/90 shadow-sm focus-within:border-[#CDA8FF] dark:border-slate-700 dark:bg-slate-900/90">
-              <EditorContent editor={editor} />
-            </div>
-          </Field>
+          {/* Writing editor */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="text-sm font-semibold text-[#49366F] dark:text-slate-200">
+                Your thoughts
+              </label>
 
+              <span className="text-xs text-[#9A88BC] dark:text-slate-500">
+                Rich text editor
+              </span>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-[#E4D7F5] bg-white/90 shadow-[0_4px_16px_rgba(91,55,150,0.06)] transition-colors focus-within:border-[#B99AE8] focus-within:shadow-[0_0_0_3px_rgba(185,154,232,0.13)] dark:border-slate-700 dark:bg-slate-900/90">
+
+              {/* Formatting toolbar */}
+              <div className="flex flex-wrap items-center gap-1 border-b border-[#EDE5F7] bg-[#FAF7FF]/90 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/80">
+
+                <div className="flex items-center gap-1">
+                  {toolbarButton(
+                    'Bold',
+                    Bold,
+                    () => editor?.chain().focus().toggleBold().run(),
+                    editor?.isActive('bold')
+                  )}
+
+                  {toolbarButton(
+                    'Italic',
+                    Italic,
+                    () => editor?.chain().focus().toggleItalic().run(),
+                    editor?.isActive('italic')
+                  )}
+
+                  {toolbarButton(
+                    'Strikethrough',
+                    Strikethrough,
+                    () => editor?.chain().focus().toggleStrike().run(),
+                    editor?.isActive('strike')
+                  )}
+                </div>
+
+                <div className="mx-1 h-6 w-px bg-[#E3D8F1] dark:bg-slate-700" />
+
+                <div className="flex items-center gap-1">
+                  {toolbarButton(
+                    'Paragraph',
+                    AlignLeft,
+                    () => editor?.chain().focus().setParagraph().run(),
+                    editor?.isActive('paragraph')
+                  )}
+
+                  {toolbarButton(
+                    'Heading 2',
+                    Heading2,
+                    () => editor?.chain().focus().toggleHeading({ level: 2 }).run(),
+                    editor?.isActive('heading', { level: 2 })
+                  )}
+
+                  {toolbarButton(
+                    'Heading 3',
+                    Heading3,
+                    () => editor?.chain().focus().toggleHeading({ level: 3 }).run(),
+                    editor?.isActive('heading', { level: 3 })
+                  )}
+                </div>
+
+                <div className="mx-1 h-6 w-px bg-[#E3D8F1] dark:bg-slate-700" />
+
+                <div className="flex items-center gap-1">
+                  {toolbarButton(
+                    'Bullet list',
+                    List,
+                    () => editor?.chain().focus().toggleBulletList().run(),
+                    editor?.isActive('bulletList')
+                  )}
+
+                  {toolbarButton(
+                    'Numbered list',
+                    ListOrdered,
+                    () => editor?.chain().focus().toggleOrderedList().run(),
+                    editor?.isActive('orderedList')
+                  )}
+
+                  {toolbarButton(
+                    'Blockquote',
+                    Quote,
+                    () => editor?.chain().focus().toggleBlockquote().run(),
+                    editor?.isActive('blockquote')
+                  )}
+
+                  {toolbarButton(
+                    'Code block',
+                    Code,
+                    () => editor?.chain().focus().toggleCodeBlock().run(),
+                    editor?.isActive('codeBlock')
+                  )}
+                </div>
+
+                <div className="mx-1 h-6 w-px bg-[#E3D8F1] dark:bg-slate-700" />
+
+                <div className="flex items-center gap-1">
+                  {toolbarButton(
+                    'Horizontal divider',
+                    Minus,
+                    () => editor?.chain().focus().setHorizontalRule().run()
+                  )}
+
+                  {toolbarButton(
+                    'Undo',
+                    Undo2,
+                    () => editor?.chain().focus().undo().run(),
+                    false,
+                    !editor?.can().undo()
+                  )}
+
+                  {toolbarButton(
+                    'Redo',
+                    Redo2,
+                    () => editor?.chain().focus().redo().run(),
+                    false,
+                    !editor?.can().redo()
+                  )}
+                </div>
+              </div>
+
+              {/* Editor content */}
+              <div className="max-h-[420px] min-h-[300px] overflow-y-auto">
+                <EditorContent editor={editor} />
+              </div>
+
+              {/* Editor footer */}
+              <div className="flex items-center justify-between border-t border-[#EDE5F7] bg-[#FCFAFF]/90 px-4 py-2.5 dark:border-slate-700 dark:bg-slate-800/70">
+                <span className="text-xs text-[#9584B5] dark:text-slate-500">
+                  Start writing whenever you're ready.
+                </span>
+
+                <span className="flex items-center gap-1.5 text-xs text-[#9584B5] dark:text-slate-500">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  Editor ready
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </Dialog>
+
+      <style>{`
+        .journal-prose {
+          font-size: 15px;
+          line-height: 1.85;
+          overflow-wrap: anywhere;
+        }
+
+        .journal-prose p {
+          margin: 0 0 12px;
+        }
+
+        .journal-prose h2 {
+          margin: 20px 0 10px;
+          font-size: 1.45rem;
+          line-height: 1.35;
+          font-weight: 700;
+          color: #49366F;
+        }
+
+        .journal-prose h3 {
+          margin: 18px 0 8px;
+          font-size: 1.2rem;
+          line-height: 1.4;
+          font-weight: 700;
+          color: #624B8F;
+        }
+
+        .dark .journal-prose h2,
+        .dark .journal-prose h3 {
+          color: #D8C5FA;
+        }
+
+        .journal-prose ul,
+        .journal-prose ol {
+          margin: 10px 0;
+          padding-left: 26px;
+        }
+
+        .journal-prose ul {
+          list-style: disc;
+        }
+
+        .journal-prose ol {
+          list-style: decimal;
+        }
+
+        .journal-prose li {
+          padding-left: 4px;
+          margin: 4px 0;
+        }
+
+        .journal-prose blockquote {
+          margin: 16px 0;
+          padding: 10px 16px;
+          border-left: 3px solid #B99AE8;
+          border-radius: 0 10px 10px 0;
+          background: rgba(185, 154, 232, 0.10);
+          color: #75618F;
+        }
+
+        .dark .journal-prose blockquote {
+          color: #C4B5D9;
+          background: rgba(168, 135, 220, 0.10);
+        }
+
+        .journal-prose pre {
+          margin: 14px 0;
+          padding: 14px;
+          overflow-x: auto;
+          border-radius: 12px;
+          background: #F3EFF9;
+          color: #49366F;
+          font-size: 13px;
+        }
+
+        .dark .journal-prose pre {
+          background: #171827;
+          color: #DDD0F4;
+        }
+
+        .journal-prose code {
+          padding: 2px 5px;
+          border-radius: 5px;
+          background: rgba(185, 154, 232, 0.16);
+          font-size: 0.9em;
+        }
+
+        .journal-prose pre code {
+          padding: 0;
+          background: transparent;
+        }
+
+        .journal-prose hr {
+          margin: 20px 0;
+          border: 0;
+          border-top: 1px solid #E5D8F5;
+        }
+
+        .dark .journal-prose hr {
+          border-color: #3B354B;
+        }
+
+        .journal-prose p.is-editor-empty:first-child::before {
+          content: attr(data-placeholder);
+          float: left;
+          height: 0;
+          color: #AA9ABF;
+          pointer-events: none;
+        }
+
+        .dark .journal-prose p.is-editor-empty:first-child::before {
+          color: #77718A;
+        }
+
+        .journal-prose > *:last-child {
+          margin-bottom: 0;
+        }
+      `}</style>
     </div>
   );
 }

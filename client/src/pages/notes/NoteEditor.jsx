@@ -50,6 +50,8 @@ import {
   RefreshCw,
   Plus,
   Pencil,
+  FileText,
+  Clock3,
 } from 'lucide-react';
 
 import {
@@ -118,12 +120,12 @@ function getNoteContent(note) {
 
 function SaveIndicator({ state, lastSavedAt }) {
   const commonClass =
-    'flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-xs';
+    'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium sm:text-xs';
 
   if (state === 'saving') {
     return (
-      <span className={`${commonClass} text-violet-600 dark:text-violet-400`}>
-        <Loader2 size={13} className="animate-spin" />
+      <span className={`${commonClass} bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400`}>
+        <Loader2 size={12} className="animate-spin" />
         Saving
       </span>
     );
@@ -131,9 +133,9 @@ function SaveIndicator({ state, lastSavedAt }) {
 
   if (state === 'unsaved') {
     return (
-      <span className={`${commonClass} text-amber-600 dark:text-amber-400`}>
-        <AlertCircle size={13} />
-        Unsaved
+      <span className={`${commonClass} bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400`}>
+        <AlertCircle size={12} />
+        Unsaved changes
       </span>
     );
   }
@@ -141,14 +143,14 @@ function SaveIndicator({ state, lastSavedAt }) {
   if (state === 'saved') {
     return (
       <span
-        className={`${commonClass} text-emerald-600 dark:text-emerald-400`}
+        className={`${commonClass} bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400`}
         title={
           lastSavedAt
             ? `Last saved at ${lastSavedAt.toLocaleTimeString()}`
             : 'All changes saved'
         }
       >
-        <Check size={13} />
+        <Check size={12} />
         Saved
       </span>
     );
@@ -156,8 +158,8 @@ function SaveIndicator({ state, lastSavedAt }) {
 
   if (state === 'offline') {
     return (
-      <span className={`${commonClass} text-amber-600`}>
-        <WifiOff size={13} />
+      <span className={`${commonClass} bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400`}>
+        <WifiOff size={12} />
         Offline
       </span>
     );
@@ -165,8 +167,8 @@ function SaveIndicator({ state, lastSavedAt }) {
 
   if (state === 'error') {
     return (
-      <span className={`${commonClass} text-red-500`}>
-        <AlertCircle size={13} />
+      <span className={`${commonClass} bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400`}>
+        <AlertCircle size={12} />
         Save failed
       </span>
     );
@@ -176,43 +178,64 @@ function SaveIndicator({ state, lastSavedAt }) {
 }
 
 // -----------------------------------------------------------------------------
-// Icon Button
+// Action Button
 // -----------------------------------------------------------------------------
 
 function IconButton({
   icon: Icon,
   label,
+  busyLabel,
+  doneLabel,
   onClick,
   active = false,
   danger = false,
   disabled = false,
   loading = false,
+  done = false,
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      title={loading ? `${label}...` : label}
-      aria-label={loading ? `${label}...` : label}
+      title={loading ? busyLabel : label}
+      aria-label={loading ? busyLabel : label}
       className={`
-        flex h-8 w-8 shrink-0 items-center justify-center rounded-lg
-        transition-colors disabled:cursor-not-allowed disabled:opacity-50
-        sm:h-9 sm:w-9
+        inline-flex h-9 shrink-0 items-center justify-center gap-1.5
+        rounded-xl border px-2.5 sm:px-3
+        text-[11px] font-semibold sm:text-xs
+        transition-all duration-200
+        hover:-translate-y-0.5 hover:shadow-sm
+        active:scale-95
+        focus-visible:outline-none focus-visible:ring-2
+        focus-visible:ring-violet-400
+        disabled:cursor-not-allowed disabled:opacity-60
         ${
           danger
-            ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10'
-            : active
-              ? 'bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400'
-              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white'
+            ? 'border-red-100 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20'
+            : done
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400'
+              : active
+                ? 'border-violet-200 bg-violet-100 text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/15 dark:text-violet-300'
+                : 'border-purple-100 bg-white/80 text-slate-600 hover:border-purple-200 hover:bg-purple-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10'
         }
       `}
     >
       {loading ? (
-        <Loader2 size={16} className="animate-spin" />
+        <Loader2 size={14} className="animate-spin" />
+      ) : done ? (
+        <Check size={14} />
       ) : (
-        <Icon size={16} />
+        <Icon size={14} strokeWidth={2} />
       )}
+
+      <span className="whitespace-nowrap">
+        {loading
+          ? busyLabel
+          : done
+            ? doneLabel
+            : label}
+      </span>
     </button>
   );
 }
@@ -243,7 +266,6 @@ export default function NoteEditor() {
     isError,
     error,
     refetch,
-    isFetching,
   } = useQuery({
     queryKey: ['note', id],
     queryFn: () => notesApi.get(id),
@@ -279,11 +301,19 @@ export default function NoteEditor() {
   const [lastSavedAt, setLastSavedAt] = useState(null);
 
   const [refreshing, setRefreshing] = useState(false);
+
   const [saveFeedback, setSaveFeedback] = useState('');
   const [refreshFeedback, setRefreshFeedback] = useState('');
 
   const [pinFeedback, setPinFeedback] = useState(false);
+  const [pinFeedbackLabel, setPinFeedbackLabel] = useState('');
+
   const [favoriteFeedback, setFavoriteFeedback] = useState(false);
+  const [favoriteFeedbackLabel, setFavoriteFeedbackLabel] = useState('');
+
+  const [archiveFeedback, setArchiveFeedback] = useState(false);
+  const [deleteFeedback, setDeleteFeedback] = useState(false);
+
   const [folderFeedback, setFolderFeedback] = useState(false);
   const [tagFeedback, setTagFeedback] = useState(false);
 
@@ -313,6 +343,7 @@ export default function NoteEditor() {
   const favoriteFeedbackTimerRef = useRef(null);
   const folderFeedbackTimerRef = useRef(null);
   const tagFeedbackTimerRef = useRef(null);
+  const navigationTimerRef = useRef(null);
 
   const manualSaveInFlightRef = useRef(false);
   const refreshInFlightRef = useRef(false);
@@ -390,8 +421,8 @@ export default function NoteEditor() {
         class: [
           'ProseMirror',
           'w-full min-h-full',
-          'px-4 py-4 sm:px-8 sm:py-7',
-          'text-[15px] leading-7',
+          'px-5 py-6 sm:px-10 sm:py-9',
+          'text-[15px] leading-8',
           'text-gray-800 dark:text-gray-200',
           'outline-none',
         ].join(' '),
@@ -602,6 +633,7 @@ export default function NoteEditor() {
       clearTimeout(favoriteFeedbackTimerRef.current);
       clearTimeout(folderFeedbackTimerRef.current);
       clearTimeout(tagFeedbackTimerRef.current);
+      clearTimeout(navigationTimerRef.current);
     };
   }, []);
 
@@ -783,7 +815,7 @@ export default function NoteEditor() {
     clearTimeout(refreshFeedbackTimerRef.current);
 
     setRefreshing(true);
-    setRefreshFeedback('Refreshing...');
+    setRefreshFeedback('');
 
     try {
       const current = getCurrentSnapshot();
@@ -792,18 +824,13 @@ export default function NoteEditor() {
         current &&
         current.snapshot !== lastSavedSnapshotRef.current
       ) {
-        setRefreshFeedback('Saving changes...');
-
         const saved = await saveNowRef.current?.();
 
         if (!saved) {
           toast.error('Save your changes before refreshing');
-          setRefreshFeedback('');
           return;
         }
       }
-
-      setRefreshFeedback('Refreshing...');
 
       const result = await refetch();
 
@@ -871,6 +898,9 @@ export default function NoteEditor() {
       qc.invalidateQueries({ queryKey: ['note', id] });
       qc.invalidateQueries({ queryKey: ['notes'] });
 
+      setPinFeedbackLabel(
+        note.is_pinned ? 'Unpinned' : 'Pinned'
+      );
       setPinFeedback(true);
 
       clearTimeout(pinFeedbackTimerRef.current);
@@ -878,6 +908,7 @@ export default function NoteEditor() {
       pinFeedbackTimerRef.current = setTimeout(() => {
         if (mountedRef.current) {
           setPinFeedback(false);
+          setPinFeedbackLabel('');
         }
       }, FEEDBACK_DURATION);
 
@@ -900,6 +931,9 @@ export default function NoteEditor() {
       qc.invalidateQueries({ queryKey: ['note', id] });
       qc.invalidateQueries({ queryKey: ['notes'] });
 
+      setFavoriteFeedbackLabel(
+        note.is_favorite ? 'Removed' : 'Added'
+      );
       setFavoriteFeedback(true);
 
       clearTimeout(favoriteFeedbackTimerRef.current);
@@ -907,8 +941,15 @@ export default function NoteEditor() {
       favoriteFeedbackTimerRef.current = setTimeout(() => {
         if (mountedRef.current) {
           setFavoriteFeedback(false);
+          setFavoriteFeedbackLabel('');
         }
       }, FEEDBACK_DURATION);
+
+      toast.success(
+        note.is_favorite
+          ? 'Removed from favorites'
+          : 'Added to favorites'
+      );
     },
 
     onError: (e) => {
@@ -926,8 +967,12 @@ export default function NoteEditor() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['notes'] });
 
+      setArchiveFeedback(true);
       toast.success('Note archived');
-      navigate('/app/notes');
+
+      navigationTimerRef.current = setTimeout(() => {
+        navigate('/app/notes');
+      }, 1000);
     },
 
     onError: (e) => {
@@ -945,8 +990,12 @@ export default function NoteEditor() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['notes'] });
 
+      setDeleteFeedback(true);
       toast.success('Moved to trash');
-      navigate('/app/notes');
+
+      navigationTimerRef.current = setTimeout(() => {
+        navigate('/app/notes');
+      }, 1000);
     },
 
     onError: (e) => {
@@ -1121,7 +1170,9 @@ export default function NoteEditor() {
   if (isError && !isNew) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-5 text-center">
-        <AlertCircle size={32} className="text-rose-500" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 dark:bg-rose-500/10">
+          <AlertCircle size={28} className="text-rose-500" />
+        </div>
 
         <h2 className="text-lg font-semibold text-text-main">
           Unable to load note
@@ -1160,48 +1211,85 @@ export default function NoteEditor() {
   const characterCount =
     editor?.storage.characterCount?.characters?.() || 0;
 
+  const anyActionPending =
+    togglePin.isPending ||
+    toggleFav.isPending ||
+    archive.isPending ||
+    remove.isPending ||
+    setFolder.isPending ||
+    setTagsMutation.isPending ||
+    createFolder.isPending;
+
   // ---------------------------------------------------------------------------
   // UI
   // ---------------------------------------------------------------------------
 
   return (
     <div className="
-      mx-auto flex h-full min-h-0 w-full max-w-6xl
+      relative mx-auto flex h-full min-h-0 w-full max-w-7xl
       flex-col overflow-hidden
-      px-0 sm:px-5 sm:py-4
+      px-0 sm:px-4 sm:py-4 lg:px-6
     ">
+
+      {/* Workspace Background */}
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
+        <div className="absolute -right-20 top-0 h-72 w-72 rounded-full bg-purple-200/20 blur-3xl dark:bg-purple-500/[0.04]" />
+        <div className="absolute -bottom-20 left-0 h-72 w-72 rounded-full bg-pink-200/20 blur-3xl dark:bg-rose-500/[0.04]" />
+      </div>
 
       {/* Header */}
 
       <div className="
-        flex shrink-0 items-center justify-between gap-2
-        border-b border-gray-200/70
-        px-2 py-2
-        dark:border-white/10
-        sm:mb-4 sm:rounded-xl sm:border
-        sm:bg-white/50 sm:px-4 sm:py-3
-        dark:sm:bg-gray-900/40
+        relative z-20 flex shrink-0 flex-wrap
+        items-center justify-between gap-2
+        border-b border-purple-100/70
+        bg-white/75 px-3 py-2.5 backdrop-blur-xl
+        dark:border-white/10 dark:bg-slate-950/70
+        sm:mb-4 sm:rounded-2xl sm:border
+        sm:px-4 sm:py-3
+        sm:shadow-[0_4px_20px_rgba(100,70,140,0.05)]
       ">
 
-        <div className="flex min-w-0 items-center gap-2">
-          <IconButton
-            icon={ArrowLeft}
-            label="Back to notes"
+        {/* Left Side */}
+
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <button
+            type="button"
             onClick={() => navigate('/app/notes')}
-          />
+            title="Back to notes"
+            aria-label="Back to notes"
+            className="
+              flex h-9 w-9 shrink-0 items-center justify-center
+              rounded-xl text-slate-500 transition
+              hover:bg-purple-50 hover:text-purple-700
+              dark:text-slate-400 dark:hover:bg-white/10
+              dark:hover:text-white
+            "
+          >
+            <ArrowLeft size={19} />
+          </button>
 
-          <div className="hidden h-5 w-px bg-gray-300 dark:bg-white/15 sm:block" />
+          <div className="hidden h-7 w-px bg-purple-100 dark:bg-white/10 sm:block" />
 
-          <span
-            className="h-2.5 w-2.5 shrink-0 rounded-full"
-            style={{ background: theme.swatch }}
-          />
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+            style={{
+              backgroundColor: `${theme.swatch}18`,
+              color: theme.swatch,
+            }}
+          >
+            <FileText size={17} />
+          </div>
 
-          <span className="max-w-[75px] truncate text-xs text-text-muted sm:max-w-none sm:text-sm">
-            {theme.name}
-          </span>
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="max-w-[110px] truncate text-xs font-semibold text-slate-700 dark:text-slate-200 sm:max-w-none sm:text-sm">
+              {theme.name}
+            </span>
 
-          <div className="ml-0.5">
             <SaveIndicator
               state={saveState}
               lastSavedAt={lastSavedAt}
@@ -1209,213 +1297,262 @@ export default function NoteEditor() {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-0.5">
+        {/* Right Side - All Actions */}
+
+        <div className="
+          flex min-w-0 flex-1 flex-wrap
+          items-center justify-end gap-1.5
+          sm:flex-initial sm:gap-2
+        ">
 
           <IconButton
             icon={RefreshCw}
-            label={refreshFeedback || 'Refresh note'}
+            label="Refresh"
+            busyLabel="Refreshing..."
+            doneLabel="Refreshed"
             onClick={handleRefresh}
             loading={refreshing}
-            disabled={refreshing || isFetching}
+            done={refreshFeedback === 'Refreshed'}
+            disabled={anyActionPending || refreshing}
           />
 
           <IconButton
             icon={Pin}
-            label={note?.is_pinned ? 'Unpin note' : 'Pin note'}
+            label="Pin"
+            busyLabel={note?.is_pinned ? 'Unpinning...' : 'Pinning...'}
+            doneLabel={pinFeedbackLabel || 'Pinned'}
             active={note?.is_pinned}
             onClick={() => togglePin.mutate()}
             loading={togglePin.isPending}
-            disabled={togglePin.isPending}
+            done={pinFeedback}
+            disabled={anyActionPending || refreshing}
           />
 
           <IconButton
             icon={Star}
-            label={
+            label="Favorite"
+            busyLabel={
               note?.is_favorite
-                ? 'Remove favorite'
-                : 'Add favorite'
+                ? 'Removing...'
+                : 'Adding...'
             }
+            doneLabel={favoriteFeedbackLabel || 'Added'}
             active={note?.is_favorite}
             onClick={() => toggleFav.mutate()}
             loading={toggleFav.isPending}
-            disabled={toggleFav.isPending}
+            done={favoriteFeedback}
+            disabled={anyActionPending || refreshing}
           />
 
           <IconButton
             icon={Archive}
-            label="Archive note"
+            label="Archive"
+            busyLabel="Archiving..."
+            doneLabel="Archived"
             onClick={() => archive.mutate()}
             loading={archive.isPending}
-            disabled={archive.isPending}
+            done={archiveFeedback}
+            disabled={anyActionPending || refreshing}
           />
 
           <IconButton
             icon={Trash2}
-            label="Move to trash"
+            label="Delete"
+            busyLabel="Deleting..."
+            doneLabel="Deleted"
             danger
             onClick={handleDelete}
             loading={remove.isPending}
-            disabled={remove.isPending}
+            done={deleteFeedback}
+            disabled={anyActionPending || refreshing}
           />
 
-          <div className="mx-1 hidden h-5 w-px bg-gray-300 dark:bg-white/15 sm:block" />
-
-          <Button
-            size="sm"
+          <IconButton
+            icon={Save}
+            label="Save"
+            busyLabel="Saving..."
+            doneLabel="Saved"
             onClick={handleManualSave}
+            loading={
+              manualSaveInFlightRef.current ||
+              saveState === 'saving'
+            }
+            done={saveFeedback === 'Saved'}
             disabled={
               saveState === 'saving' ||
-              manualSaveInFlightRef.current
+              manualSaveInFlightRef.current ||
+              anyActionPending ||
+              refreshing
             }
-            className="h-8 min-w-[76px] gap-1.5 px-2 text-xs sm:h-9 sm:min-w-[90px] sm:px-3 sm:text-sm"
-          >
-            {saveFeedback === 'Saving...' || saveState === 'saving' ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : saveFeedback === 'Saved' ? (
-              <Check size={14} />
-            ) : (
-              <Save size={14} />
-            )}
-
-            <span>{saveFeedback || 'Save'}</span>
-          </Button>
+          />
         </div>
       </div>
 
-      {/* Note Title */}
-
-      <div className="shrink-0 px-4 pt-3 sm:px-2 sm:pt-0">
-        <input
-          value={title}
-          onChange={handleTitleChange}
-          onBlur={() => {
-            clearTimeout(saveTimerRef.current);
-            saveNowRef.current?.();
-          }}
-          placeholder="Untitled note"
-          aria-label="Note title"
-          className="
-            w-full border-0 bg-transparent p-0
-            text-2xl font-semibold tracking-tight
-            text-text-main outline-none
-            placeholder:text-text-muted focus:ring-0
-            sm:text-4xl
-          "
-        />
-      </div>
-
-      {/* Folder and Tags */}
+      {/* Note Details */}
 
       <div className="
-        flex shrink-0 flex-wrap items-center
-        gap-x-4 gap-y-2
-        px-4 py-3 sm:px-2
+        relative z-10 shrink-0
+        rounded-none border-b border-purple-100/60
+        bg-white/30 px-4 py-4
+        dark:border-white/5 dark:bg-transparent
+        sm:mb-3 sm:rounded-2xl sm:border
+        sm:bg-white/40 sm:px-5 sm:py-4
+        sm:backdrop-blur-sm
+        dark:sm:bg-slate-900/30
       ">
 
-        <div className="flex min-w-0 items-center gap-2">
-          <FolderIcon
-            size={15}
-            className="shrink-0 text-text-muted"
-          />
+        {/* Title */}
 
-          <div className="w-[125px] min-w-0 sm:w-[150px]">
-            <Select
-              value={folderId}
-              onChange={handleFolderChange}
-              disabled={setFolder.isPending}
-              className="w-full"
-            >
-              <option value="">No folder</option>
-
-              {folders.map((folder) => (
-                <option key={folder.id} value={folder.id}>
-                  {folder.name}
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setFolderName('');
-              setFolderDialogOpen(true);
+        <div className="flex items-center gap-2">
+          <input
+            value={title}
+            onChange={handleTitleChange}
+            onBlur={() => {
+              clearTimeout(saveTimerRef.current);
+              saveNowRef.current?.();
             }}
+            placeholder="Untitled note"
+            aria-label="Note title"
             className="
-              flex h-8 shrink-0 items-center gap-1
-              rounded-lg border border-gray-200
-              bg-white/70 px-2
-              text-xs font-medium text-gray-600
-              transition hover:border-violet-300
-              hover:text-violet-600
-              dark:border-white/10 dark:bg-gray-900/40
-              dark:text-gray-300
+              min-w-0 flex-1 border-0 bg-transparent p-0
+              text-2xl font-bold tracking-tight
+              text-slate-800 outline-none
+              placeholder:text-slate-300 focus:ring-0
+              dark:text-slate-100 dark:placeholder:text-slate-600
+              sm:text-3xl lg:text-4xl
             "
-          >
-            <Plus size={13} />
-            Add folder
-          </button>
-
-          {folderFeedback && (
-            <span className="hidden items-center gap-1 text-xs text-emerald-600 sm:flex">
-              <Check size={12} />
-              Updated
-            </span>
-          )}
+          />
         </div>
 
-        <div className="hidden h-5 w-px bg-gray-200 dark:bg-white/10 sm:block" />
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
 
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-          <TagIcon
-            size={14}
-            className="shrink-0 text-text-muted"
-          />
+          {/* Folder */}
 
-          {(note?.tags || []).map((tag) => (
-            <span
-              key={tag.id}
-              className="bn-chip"
-            >
-              {tag.name}
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-300">
+              <FolderIcon size={15} />
+            </div>
 
-              <button
-                type="button"
-                onClick={() => removeTag(tag.id)}
-                aria-label={`Remove ${tag.name}`}
-                disabled={setTagsMutation.isPending}
+            <div className="w-[125px] min-w-0 sm:w-[155px]">
+              <Select
+                value={folderId}
+                onChange={handleFolderChange}
+                disabled={setFolder.isPending}
+                className="w-full"
               >
-                <X size={11} />
-              </button>
-            </span>
-          ))}
+                <option value="">No folder</option>
 
-          <button
-            type="button"
-            onClick={() => setTagPickerOpen(true)}
-            className="
-              rounded-md border border-dashed
-              border-gray-300 px-2 py-1
-              text-xs text-text-muted transition
-              hover:border-violet-400 hover:text-violet-600
-              dark:border-white/20
-            "
-          >
-            + Add tag
-          </button>
+                {folders.map((folder) => (
+                  <option key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
 
-          {tagFeedback && (
-            <span className="flex items-center gap-1 text-xs text-emerald-600">
-              <Check size={12} />
-              Updated
-            </span>
-          )}
+            <button
+              type="button"
+              onClick={() => {
+                setFolderName('');
+                setFolderDialogOpen(true);
+              }}
+              className="
+                flex h-8 shrink-0 items-center gap-1.5
+                rounded-lg border border-purple-100
+                bg-white/70 px-2.5
+                text-xs font-medium text-purple-700
+                transition-all hover:border-purple-300
+                hover:bg-purple-50
+                dark:border-white/10 dark:bg-white/5
+                dark:text-purple-300 dark:hover:bg-white/10
+              "
+            >
+              <Plus size={13} />
+              <span className="hidden sm:inline">New folder</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+
+            {folderFeedback && (
+              <span className="hidden items-center gap-1 text-xs text-emerald-600 sm:flex">
+                <Check size={12} />
+                Updated
+              </span>
+            )}
+          </div>
+
+          <div className="hidden h-6 w-px bg-purple-100 dark:bg-white/10 sm:block" />
+
+          {/* Tags */}
+
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-50 text-pink-600 dark:bg-pink-500/10 dark:text-pink-300">
+              <TagIcon size={14} />
+            </div>
+
+            {(note?.tags || []).map((tag) => (
+              <span
+                key={tag.id}
+                className="
+                  inline-flex items-center gap-1.5
+                  rounded-full border border-purple-100
+                  bg-white/80 px-2.5 py-1
+                  text-[11px] font-medium text-purple-700
+                  dark:border-purple-400/20
+                  dark:bg-purple-500/10 dark:text-purple-300
+                "
+              >
+                {tag.name}
+
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag.id)}
+                  aria-label={`Remove ${tag.name}`}
+                  disabled={setTagsMutation.isPending}
+                  className="rounded-full p-0.5 transition hover:bg-purple-100 hover:text-red-500 disabled:opacity-50 dark:hover:bg-white/10"
+                >
+                  <X size={11} />
+                </button>
+              </span>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => setTagPickerOpen(true)}
+              className="
+                inline-flex h-7 items-center gap-1
+                rounded-full border border-dashed
+                border-purple-200 px-3
+                text-[11px] font-semibold text-purple-600
+                transition-all hover:border-purple-400
+                hover:bg-purple-50
+                dark:border-purple-400/30
+                dark:text-purple-300 dark:hover:bg-purple-500/10
+              "
+            >
+              <Plus size={12} />
+              Add tag
+            </button>
+
+            {tagFeedback && (
+              <span className="flex items-center gap-1 text-xs text-emerald-600">
+                <Check size={12} />
+                Updated
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Desktop Toolbar */}
 
-      <div className="hidden shrink-0 sm:block">
+      <div className="
+        relative z-10 hidden shrink-0
+        overflow-x-auto rounded-xl
+        border border-purple-100/70
+        bg-white/80 shadow-sm backdrop-blur-xl
+        dark:border-white/10 dark:bg-slate-900/70
+        sm:mb-3 sm:block
+      ">
         <EditorToolbar editor={editor} />
       </div>
 
@@ -1423,10 +1560,10 @@ export default function NoteEditor() {
 
       {mobileToolbarOpen && (
         <div className="
-          shrink-0 overflow-x-auto
-          border-y border-gray-200
-          bg-white px-2 py-2
-          dark:border-white/10 dark:bg-gray-900
+          relative z-10 shrink-0 overflow-x-auto
+          border-y border-purple-100
+          bg-white/95 px-2 py-2 shadow-sm
+          dark:border-white/10 dark:bg-slate-900
           sm:hidden
         ">
           <div className="min-w-max">
@@ -1435,16 +1572,25 @@ export default function NoteEditor() {
         </div>
       )}
 
-      {/* Whiteboard */}
+      {/* Editor Workspace */}
 
       <div className="
-        flex min-h-0 flex-1 flex-col
+        relative z-0 flex min-h-0 flex-1 flex-col
         overflow-hidden
-        border-y border-gray-200
-        bg-white
-        dark:border-white/10 dark:bg-gray-950
-        sm:rounded-xl sm:border sm:shadow-sm
+        border-y border-purple-100/70
+        bg-white/80
+        dark:border-white/10 dark:bg-slate-950/70
+        sm:rounded-2xl sm:border
+        sm:shadow-[0_8px_30px_rgba(100,70,140,0.06)]
       ">
+
+        <div
+          className="h-[3px] w-full shrink-0 opacity-80"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${theme.swatch}, transparent)`,
+          }}
+        />
+
         <div className="
           min-h-0 flex-1
           overflow-x-hidden overflow-y-auto
@@ -1460,20 +1606,30 @@ export default function NoteEditor() {
       {/* Footer */}
 
       <div className="
-        z-20 flex shrink-0 items-center
+        z-10 flex shrink-0 items-center
         justify-between gap-3
-        border-t border-gray-200
-        bg-white px-4 py-2
-        dark:border-white/10 dark:bg-gray-950
-        sm:mt-3 sm:rounded-lg sm:border-0
-        sm:bg-transparent sm:px-2 sm:py-1
+        border-t border-purple-100/70
+        bg-white/80 px-4 py-2.5
+        dark:border-white/10 dark:bg-slate-950/70
+        sm:mt-3 sm:rounded-xl sm:border
+        sm:px-4 sm:py-2
+        sm:backdrop-blur-xl
       ">
         <div className="
           flex items-center gap-3
-          text-[11px] text-text-muted sm:text-xs
+          text-[11px] font-medium text-slate-500
+          dark:text-slate-400 sm:text-xs
         ">
-          <span>{wordCount} words</span>
-          <span>{characterCount} characters</span>
+          <span className="inline-flex items-center gap-1.5">
+            <FileText size={12} />
+            {wordCount} words
+          </span>
+
+          <span className="hidden h-3 w-px bg-slate-200 dark:bg-white/10 sm:block" />
+
+          <span className="hidden sm:inline">
+            {characterCount} characters
+          </span>
         </div>
 
         <button
@@ -1481,13 +1637,13 @@ export default function NoteEditor() {
           onClick={() => setMobileToolbarOpen((value) => !value)}
           className="
             flex h-8 shrink-0 items-center gap-1.5
-            rounded-lg border border-violet-200
-            bg-violet-50 px-3
-            text-xs font-medium text-violet-700
-            transition hover:bg-violet-100
-            dark:border-violet-500/20
-            dark:bg-violet-500/10
-            dark:text-violet-300
+            rounded-lg border border-purple-200
+            bg-purple-50 px-3
+            text-xs font-semibold text-purple-700
+            transition hover:bg-purple-100
+            dark:border-purple-500/20
+            dark:bg-purple-500/10
+            dark:text-purple-300
             sm:hidden
           "
         >
@@ -1495,8 +1651,9 @@ export default function NoteEditor() {
           {mobileToolbarOpen ? 'Done' : 'Edit'}
         </button>
 
-        <span className="hidden text-xs text-text-muted sm:block">
-          Theme: {theme.name}
+        <span className="hidden items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 sm:flex">
+          <Clock3 size={12} />
+          {theme.name}
         </span>
       </div>
 
@@ -1522,7 +1679,7 @@ export default function NoteEditor() {
               onChange={(event) => setFolderName(event.target.value)}
               placeholder="Enter folder name"
               className="
-                w-full rounded-lg border border-gray-200
+                w-full rounded-xl border border-gray-200
                 bg-white px-3 py-2.5 text-sm text-gray-800
                 outline-none transition
                 focus:border-violet-400 focus:ring-2
@@ -1576,8 +1733,8 @@ export default function NoteEditor() {
                 key={tag.id}
                 className="
                   flex cursor-pointer items-center gap-3
-                  rounded-lg px-3 py-2.5 transition
-                  hover:bg-gray-50 dark:hover:bg-white/5
+                  rounded-xl px-3 py-2.5 transition
+                  hover:bg-purple-50 dark:hover:bg-white/5
                 "
               >
                 <input
