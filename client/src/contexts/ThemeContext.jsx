@@ -1,91 +1,395 @@
-// src/contexts/ThemeContext.jsx
-// Centralized ThemeProvider.
-//   - parent theme: 'light' | 'dark' | 'system'  (persisted on profile)
-//   - active note theme: one of eight IDs        (transient — only while a note is open)
-//
-// Behavior:
-//   - Opening a note calls setActiveNoteTheme(id) -> sets <html data-note-theme="id">.
-//     The note theme overrides parent tokens for ALL surfaces.
-//   - Closing a note calls setActiveNoteTheme(null) -> restores parent theme.
-//   - Parent preference is never overwritten by note themes.
-import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
+
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+} from 'react';
+
 import { useAuth } from './AuthContext.jsx';
+
+
+// ======================================================
+// THEME CONTEXT
+// ======================================================
 
 const ThemeContext = createContext(null);
 
-function resolveSystem() {
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+// ======================================================
+// THEME CONFIGURATION
+// ======================================================
+
+const PARENT_THEMES = ['light', 'dark', 'system'];
+
+const NOTE_THEMES = [
+  'sakura_pink',
+  'lavender_garden',
+  'botanical_garden',
+  'midnight_rose',
+  'blue_hydrangea',
+  'peach_blossom',
+  'daisy_minimal',
+  'moonlit_garden',
+];
+
+const DARK_NOTE_THEMES = [
+  'midnight_rose',
+  'moonlit_garden',
+];
+
+
+// ======================================================
+// VALIDATION
+// ======================================================
+
+function getValidParentTheme(theme) {
+  return PARENT_THEMES.includes(theme)
+    ? theme
+    : 'system';
 }
+
+function getValidNoteTheme(theme) {
+  if (!theme) return null;
+
+  return NOTE_THEMES.includes(theme)
+    ? theme
+    : null;
+}
+
+
+// ======================================================
+// SYSTEM THEME
+// ======================================================
+
+function getSystemTheme() {
+  if (typeof window === 'undefined') {
+    return 'light';
+  }
+
+  if (typeof window.matchMedia !== 'function') {
+    return 'light';
+  }
+
+  return window.matchMedia(
+    '(prefers-color-scheme: dark)'
+  ).matches
+    ? 'dark'
+    : 'light';
+}
+
+
+// ======================================================
+// APPLY THEME TO DOCUMENT
+// ======================================================
+
+function applyDocumentTheme(theme, noteTheme = null) {
+  if (typeof document === 'undefined') return;
+
+  const root = document.documentElement;
+
+  // Set active note theme.
+  if (noteTheme) {
+    root.setAttribute('data-note-theme', noteTheme);
+  } else {
+    root.removeAttribute('data-note-theme');
+  }
+
+  // Set resolved light/dark theme.
+  root.setAttribute('data-theme', theme);
+
+  // Tailwind dark mode compatibility.
+  root.classList.toggle('dark', theme === 'dark');
+
+  // Browser native controls compatibility.
+  root.style.colorScheme = theme;
+}
+
+
+// ======================================================
+// THEME PROVIDER
+// ======================================================
 
 export function ThemeProvider({ children }) {
   const { profile } = useAuth();
-  const [parentTheme, setParentTheme] = useState('system');
-  const [activeNoteTheme, setActiveNoteThemeState] = useState(null);
-  const [systemDark, setSystemDark] = useState(resolveSystem());
+
+
+  // ----------------------------------------------------
+  // PARENT THEME
+  // ----------------------------------------------------
+
+  const [parentTheme, setParentThemeState] = useState(() =>
+    getValidParentTheme(profile?.parent_theme)
+  );
+
+
+  // ----------------------------------------------------
+  // ACTIVE NOTE THEME
+  // ----------------------------------------------------
+
+  const [activeNoteTheme, setActiveNoteThemeState] =
+    useState(null);
+
+
+  // ----------------------------------------------------
+  // SYSTEM THEME
+  // ----------------------------------------------------
+
+  const [systemTheme, setSystemTheme] = useState(
+    getSystemTheme
+  );
+
+
+  // ====================================================
+  // 1. LISTEN TO SYSTEM THEME CHANGES
+  // ====================================================
 
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e) => setSystemDark(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    ) {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(
+      '(prefers-color-scheme: dark)'
+    );
+
+    const handleSystemThemeChange = (event) => {
+      setSystemTheme(
+        event.matches ? 'dark' : 'light'
+      );
+    };
+
+    // Initial synchronization.
+    setSystemTheme(
+      mediaQuery.matches ? 'dark' : 'light'
+    );
+
+    // Modern browser.
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener(
+        'change',
+        handleSystemThemeChange
+      );
+
+      return () => {
+        mediaQuery.removeEventListener(
+          'change',
+          handleSystemThemeChange
+        );
+      };
+    }
+
+    // Older browser fallback.
+    mediaQuery.addListener(
+      handleSystemThemeChange
+    );
+
+    return () => {
+      mediaQuery.removeListener(
+        handleSystemThemeChange
+      );
+    };
   }, []);
 
-  // Pull parent preference from profile when available.
+
+  // ====================================================
+  // 2. SYNC PARENT THEME FROM PROFILE
+  // ====================================================
+
   useEffect(() => {
-    if (profile?.parent_theme) setParentTheme(profile.parent_theme);
+    if (profile?.parent_theme) {
+      setParentThemeState(
+        getValidParentTheme(profile.parent_theme)
+      );
+    }
   }, [profile?.parent_theme]);
 
-  // Reduced motion + editor font size.
-  useEffect(() => {
-    document.documentElement.dataset.reducedMotion = String(!!profile?.reduced_motion);
-  }, [profile?.reduced_motion]);
 
-  useEffect(() => {
-    document.documentElement.style.setProperty('--editor-font-size', `${profile?.editor_font_size || 15}px`);
-  }, [profile?.editor_font_size]);
+  // ====================================================
+  // 3. RESOLVE PARENT THEME
+  // ====================================================
 
-  // Apply the resolved theme.
-  const resolvedParent = parentTheme === 'system' ? (systemDark ? 'dark' : 'light') : parentTheme;
-
-  useEffect(() => {
-    if (activeNoteTheme) {
-      document.documentElement.setAttribute('data-note-theme', activeNoteTheme);
-      // While a note theme is active, also keep data-theme synced to the note
-      // theme's light/dark variant so color-scheme + utilities are consistent.
-      const noteIsDark = ['midnight_rose', 'moonlit_garden'].includes(activeNoteTheme);
-      document.documentElement.setAttribute('data-theme', noteIsDark ? 'dark' : 'light');
-    } else {
-      document.documentElement.removeAttribute('data-note-theme');
-      document.documentElement.setAttribute('data-theme', resolvedParent);
+  const resolvedParent = useMemo(() => {
+    if (parentTheme === 'system') {
+      return systemTheme;
     }
+
+    return parentTheme;
+  }, [parentTheme, systemTheme]);
+
+
+  // ====================================================
+  // 4. RESOLVE ACTIVE THEME
+  // ====================================================
+
+  const resolvedTheme = useMemo(() => {
+    if (!activeNoteTheme) {
+      return resolvedParent;
+    }
+
+    return DARK_NOTE_THEMES.includes(activeNoteTheme)
+      ? 'dark'
+      : 'light';
   }, [activeNoteTheme, resolvedParent]);
 
-  const setActiveNoteTheme = useCallback((id) => {
-    setActiveNoteThemeState(id);
+
+  // ====================================================
+  // 5. APPLY THEME TO HTML
+  // ====================================================
+
+  useEffect(() => {
+    applyDocumentTheme(
+      resolvedTheme,
+      activeNoteTheme
+    );
+  }, [resolvedTheme, activeNoteTheme]);
+
+
+  // ====================================================
+  // 6. REDUCED MOTION
+  // ====================================================
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    document.documentElement.dataset.reducedMotion =
+      String(Boolean(profile?.reduced_motion));
+  }, [profile?.reduced_motion]);
+
+
+  // ====================================================
+  // 7. EDITOR FONT SIZE
+  // ====================================================
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const fontSize = Number(
+      profile?.editor_font_size
+    );
+
+    const validFontSize =
+      Number.isFinite(fontSize) &&
+      fontSize >= 12 &&
+      fontSize <= 32
+        ? fontSize
+        : 15;
+
+    document.documentElement.style.setProperty(
+      '--editor-font-size',
+      `${validFontSize}px`
+    );
+  }, [profile?.editor_font_size]);
+
+
+  // ====================================================
+  // 8. CHANGE PARENT THEME
+  // ====================================================
+
+  const setParentTheme = useCallback((theme) => {
+    const validTheme = getValidParentTheme(theme);
+
+    setParentThemeState(validTheme);
   }, []);
+
+
+  // ====================================================
+  // 9. ACTIVATE NOTE THEME
+  // ====================================================
+
+  const setActiveNoteTheme = useCallback((theme) => {
+    const validTheme = getValidNoteTheme(theme);
+
+    setActiveNoteThemeState(validTheme);
+  }, []);
+
+
+  // ====================================================
+  // 10. CLEAR NOTE THEME
+  // ====================================================
 
   const clearActiveNoteTheme = useCallback(() => {
     setActiveNoteThemeState(null);
   }, []);
 
-  const setParent = useCallback((t) => {
-    setParentTheme(t);
-  }, []);
+
+  // ====================================================
+  // 11. CONTEXT VALUE
+  // ====================================================
 
   const value = useMemo(() => ({
+    // User preference.
     parentTheme,
-    setParentTheme: setParent,
+
+    setParentTheme,
+
+    // Actual resolved parent preference.
     resolvedParent,
+
+    // Current theme applied to the application.
+    resolvedTheme,
+
+    // Device preference.
+    systemTheme,
+
+    // Active note theme.
+    activeNoteTheme,
+
+    setActiveNoteTheme,
+
+    clearActiveNoteTheme,
+
+    // Theme information.
+    isDark: resolvedTheme === 'dark',
+    isLight: resolvedTheme === 'light',
+
+    isSystem: parentTheme === 'system',
+    hasActiveNoteTheme: Boolean(activeNoteTheme),
+
+    availableParentThemes: PARENT_THEMES,
+    availableNoteThemes: NOTE_THEMES,
+
+  }), [
+    parentTheme,
+    setParentTheme,
+    resolvedParent,
+    resolvedTheme,
+    systemTheme,
     activeNoteTheme,
     setActiveNoteTheme,
     clearActiveNoteTheme,
-  }), [parentTheme, resolvedParent, activeNoteTheme, setActiveNoteTheme, clearActiveNoteTheme, setParent]);
+  ]);
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+
+  // ====================================================
+  // PROVIDER
+  // ====================================================
+
+  return (
+    <ThemeContext.Provider value={value}>
+      {children}
+    </ThemeContext.Provider>
+  );
 }
 
+
+// ======================================================
+// USE THEME HOOK
+// ======================================================
+
 export function useTheme() {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
-  return ctx;
+  const context = useContext(ThemeContext);
+
+  if (!context) {
+    throw new Error(
+      'useTheme must be used within ThemeProvider'
+    );
+  }
+
+  return context;
 }

@@ -1,10 +1,13 @@
 
+// src/pages/notes/FoldersPage.jsx
+
 import { useMemo, useState } from 'react';
 import {
   useQuery,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
+
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -18,6 +21,8 @@ import {
   Search,
   X,
   Check,
+  Sparkles,
+  Clock3,
 } from 'lucide-react';
 
 import { foldersApi } from '../../services/index.js';
@@ -25,6 +30,7 @@ import { foldersApi } from '../../services/index.js';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input, Field } from '../../components/ui/Input.jsx';
 import { Dialog } from '../../components/ui/Dialog.jsx';
+
 import {
   PageLoader,
   EmptyState,
@@ -45,8 +51,9 @@ export default function FoldersPage() {
   const [name, setName] = useState('');
   const [search, setSearch] = useState('');
 
+  // Fetch folders
   const {
-    data: folders = [],
+    data: foldersData,
     isLoading,
     isError,
     refetch,
@@ -55,6 +62,11 @@ export default function FoldersPage() {
     queryFn: () => foldersApi.list(),
   });
 
+  const folders = Array.isArray(foldersData)
+    ? foldersData
+    : foldersData?.items || [];
+
+  // Create folder
   const create = useMutation({
     mutationFn: (body) => foldersApi.create(body),
 
@@ -66,10 +78,11 @@ export default function FoldersPage() {
     },
 
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(error.message || 'Could not create folder');
     },
   });
 
+  // Rename folder
   const update = useMutation({
     mutationFn: ({ id, body }) => foldersApi.update(id, body),
 
@@ -81,10 +94,11 @@ export default function FoldersPage() {
     },
 
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(error.message || 'Could not rename folder');
     },
   });
 
+  // Delete folder
   const remove = useMutation({
     mutationFn: (id) => foldersApi.remove(id),
 
@@ -94,16 +108,20 @@ export default function FoldersPage() {
     },
 
     onError: (error) => {
-      toast.error(error.message);
+      toast.error(error.message || 'Could not delete folder');
     },
   });
 
+  // Search folders
   const filteredFolders = useMemo(() => {
+    const term = search.trim().toLowerCase();
+
     return folders.filter((folder) =>
-      folder.name?.toLowerCase().includes(search.trim().toLowerCase())
+      folder.name?.toLowerCase().includes(term)
     );
   }, [folders, search]);
 
+  // Create handler
   const handleCreate = () => {
     const trimmed = name.trim();
 
@@ -115,11 +133,13 @@ export default function FoldersPage() {
     create.mutate({ name: trimmed });
   };
 
+  // Start editing
   const startEditing = (folder) => {
     setEditing(folder);
     setName(folder.name || '');
   };
 
+  // Cancel editing
   const cancelEditing = () => {
     if (update.isPending) return;
 
@@ -127,6 +147,7 @@ export default function FoldersPage() {
     setName('');
   };
 
+  // Update handler
   const handleUpdate = () => {
     const trimmed = name.trim();
 
@@ -146,6 +167,7 @@ export default function FoldersPage() {
     });
   };
 
+  // Delete confirmation
   const handleRemove = async (folder) => {
     const confirmed = await confirm({
       title: 'Delete folder?',
@@ -159,6 +181,7 @@ export default function FoldersPage() {
     }
   };
 
+  // Format date
   const formatDate = (date) => {
     if (!date) return 'Folder';
 
@@ -208,53 +231,71 @@ export default function FoldersPage() {
         backgroundAttachment: 'fixed',
       }}
     >
-      <div className="pointer-events-none absolute inset-0 bg-white/10 dark:bg-black/10" />
+      {/* Background overlay */}
+      <div className="pointer-events-none absolute inset-0 bg-white/20 dark:bg-black/20" />
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
 
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F1E8FF] text-[#6240C8] dark:bg-purple-950/50 dark:text-purple-400">
+
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
               <FolderOpen size={23} />
             </div>
 
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[#10123D] dark:text-slate-100 sm:text-3xl">
+              <h1 className="text-2xl font-semibold tracking-tight text-text-main sm:text-3xl">
                 Folders
               </h1>
 
-              <p className="mt-1 text-sm text-[#51418F] dark:text-slate-400">
+              <p className="mt-1 text-sm text-text-muted">
                 Organize your notes and keep everything in one place.
               </p>
             </div>
+
           </div>
 
-          <Button
-            onClick={() => {
-              setName('');
-              setCreateOpen(true);
-            }}
-            className="self-start sm:self-auto"
-          >
-            <Plus size={16} />
-            New folder
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/65 px-4 py-2 shadow-sm dark:border-white/10 dark:bg-black/25">
+              <FolderIcon size={15} className="text-rose-500" />
+
+              <span className="text-sm font-medium text-text-main">
+                {folders.length} {folders.length === 1 ? 'folder' : 'folders'}
+              </span>
+            </div>
+
+            <Button
+              onClick={() => {
+                setName('');
+                setCreateOpen(true);
+              }}
+              className="bg-[#B8326B] text-white hover:bg-[#9F285B]"
+            >
+              <Plus size={16} />
+              New folder
+            </Button>
+
+          </div>
         </div>
 
         {/* Search */}
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6">
+
           <div className="relative w-full sm:max-w-sm">
+
             <Search
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#62529D]"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
             />
 
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search folders..."
-              className="bg-white/75 pl-10 pr-10 dark:bg-slate-900/70"
+              className="border-white/70 bg-white/70 pl-10 pr-10 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-black/25"
             />
 
             {search && (
@@ -262,21 +303,20 @@ export default function FoldersPage() {
                 type="button"
                 onClick={() => setSearch('')}
                 aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted transition hover:text-text-main"
               >
                 <X size={15} />
               </button>
             )}
-          </div>
 
-          <span className="text-sm font-medium text-[#51418F] dark:text-slate-400">
-            {filteredFolders.length} folders
-          </span>
+          </div>
         </div>
 
-        {/* Folder list */}
+        {/* Empty folders */}
         {folders.length === 0 ? (
-          <div className="rounded-[22px] border border-[#E8D8FF] bg-white/75 px-5 py-12 shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+
+          <div className="rounded-[22px] border border-white/70 bg-white/70 px-5 py-12 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-black/25">
+
             <EmptyState
               icon={FolderIcon}
               title="No folders yet"
@@ -287,204 +327,315 @@ export default function FoldersPage() {
                     setName('');
                     setCreateOpen(true);
                   }}
+                  className="bg-[#B8326B] text-white hover:bg-[#9F285B]"
                 >
                   <Plus size={15} />
                   Create folder
                 </Button>
               }
             />
+
           </div>
+
         ) : filteredFolders.length === 0 ? (
-          <div className="rounded-[22px] border border-[#E8D8FF] bg-white/75 px-5 py-12 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900/70">
+
+          <div className="rounded-[22px] border border-white/70 bg-white/70 px-5 py-12 text-center shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-black/25">
+
             <Search
               size={28}
-              className="mx-auto mb-3 text-[#62529D]"
+              className="mx-auto mb-3 text-rose-500"
             />
 
-            <p className="font-semibold text-[#10123D] dark:text-slate-100">
+            <p className="font-semibold text-text-main">
               No matching folders
             </p>
 
-            <p className="mt-1 text-sm text-[#51418F] dark:text-slate-400">
+            <p className="mt-1 text-sm text-text-muted">
               Try searching with another name.
             </p>
+
           </div>
+
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredFolders.map((folder) => {
-              const isEditing = editing?.id === folder.id;
 
-              return (
-                <article
-                  key={folder.id}
-                  onClick={() => {
-                    if (!isEditing) {
-                      navigate(`/app/folders/${folder.id}`);
-                    }
-                  }}
-                  className={`group relative isolate min-h-[190px] overflow-hidden rounded-[22px] border border-[#E8D8FF] bg-white shadow-[0_4px_12px_rgba(91,55,150,0.09)] transition-all duration-300 hover:border-[#CDA8FF] hover:shadow-[0_12px_28px_rgba(91,55,150,0.15)] dark:border-slate-700 dark:bg-slate-900 ${
-                    isEditing
-                      ? 'cursor-default ring-2 ring-[#CDA8FF]/40'
-                      : 'cursor-pointer hover:-translate-y-1'
-                  }`}
-                >
-                  {/* Floral background */}
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute -bottom-1 -right-1 z-0 h-[82%] w-[48%] bg-contain bg-right-bottom bg-no-repeat opacity-85 transition-transform duration-500 group-hover:scale-105"
-                    style={{
-                      backgroundImage: `url(${noteFlower})`,
+          <>
+            {/* Section heading */}
+            <div className="mb-5 flex items-center justify-between">
+
+              <div>
+                <h2 className="text-lg font-semibold text-text-main">
+                  Your folders
+                </h2>
+
+                <p className="mt-1 text-sm text-text-muted">
+                  All your collections in one place.
+                </p>
+              </div>
+
+              <span className="text-xs font-medium text-text-muted">
+                {filteredFolders.length} shown
+              </span>
+
+            </div>
+
+            {/* Folder cards - NoteCard visual style */}
+            <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+              {filteredFolders.map((folder) => {
+                const isEditing = editing?.id === folder.id;
+                const accent = '#9875C9';
+
+                return (
+                  <article
+                    key={folder.id}
+                    onClick={() => {
+                      if (!isEditing) {
+                        navigate(`/app/folders/${folder.id}`);
+                      }
                     }}
-                  />
+                    onKeyDown={(event) => {
+                      if (
+                        !isEditing &&
+                        (event.key === 'Enter' || event.key === ' ')
+                      ) {
+                        event.preventDefault();
+                        navigate(`/app/folders/${folder.id}`);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={isEditing ? -1 : 0}
+                    aria-label={`Open folder ${folder.name}`}
+                    className={`group relative isolate flex min-h-[285px] min-w-0 flex-col overflow-hidden rounded-[22px] border border-border/60 bg-card/70 shadow-[0_6px_24px_rgba(35,25,65,0.07)] backdrop-blur-xl transition-[border-color,box-shadow] duration-200 hover:border-accent/35 hover:shadow-[0_10px_30px_rgba(35,25,65,0.11)] ${
+                      isEditing
+                        ? 'cursor-default ring-2 ring-accent/30'
+                        : 'cursor-pointer'
+                    }`}
+                  >
 
-                  {/* Readability overlay */}
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-r from-white via-white/95 to-white/10 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900/30"
-                  />
-
-                  <div className="relative z-10 flex min-h-[190px] flex-col p-4 sm:p-5">
-
-                    {/* Card header */}
-                    <div className="mb-4 flex items-start justify-between gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F1E8FF] text-[#6240C8] dark:bg-purple-950/50 dark:text-purple-400">
-                        <FolderIcon size={22} />
-                      </div>
-
-                      {!isEditing && (
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              startEditing(folder);
-                            }}
-                            aria-label="Rename folder"
-                            title="Rename"
-                            className="flex h-9 w-9 items-center justify-center rounded-xl text-[#51418F] transition hover:bg-[#F1E8FF] dark:text-slate-300 dark:hover:bg-slate-800"
-                          >
-                            <Pencil size={16} />
-                          </button>
-
-                          <button
-                            type="button"
-                            disabled={remove.isPending}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleRemove(folder);
-                            }}
-                            aria-label="Delete folder"
-                            title="Delete"
-                            className="flex h-9 w-9 items-center justify-center rounded-xl text-[#51418F] transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-red-950/30"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Inline rename area */}
+                    {/* Left accent stripe */}
                     <div
-                      className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
-                        isEditing
-                          ? 'grid-rows-[1fr] opacity-100'
-                          : 'grid-rows-[0fr] opacity-0'
-                      }`}
-                    >
-                      <div className="min-h-0 overflow-hidden">
-                        {isEditing && (
+                      aria-hidden="true"
+                      className="pointer-events-none absolute left-0 top-[22%] z-20 h-[56%] w-[4px] rounded-r-full"
+                      style={{
+                        backgroundColor: accent,
+                        boxShadow: `0 0 12px ${accent}55`,
+                      }}
+                    />
+
+                    {/* Floral decoration */}
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute bottom-0 right-0 z-0 h-40 w-40 bg-contain bg-right-bottom bg-no-repeat opacity-[0.18] dark:opacity-[0.10] transition-transform duration-500 group-hover:scale-105"
+                      style={{
+                        backgroundImage: `url(${noteFlower})`,
+                      }}
+                    />
+
+                    {/* Accent glow */}
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-0 top-0 z-0 h-36 w-36 rounded-full opacity-20 blur-3xl"
+                      style={{ backgroundColor: accent }}
+                    />
+
+                    {/* Card content */}
+                    <div className="relative z-10 flex flex-1 flex-col p-5 pl-6 sm:p-6 sm:pl-7">
+
+                      {/* Card header */}
+                      <div className="mb-6 flex items-center justify-between gap-3">
+
+                        <div className="flex min-w-0 items-center gap-3">
+
                           <div
-                            className="mb-3 space-y-3"
-                            onClick={(event) => event.stopPropagation()}
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+                            style={{
+                              color: accent,
+                              backgroundColor: `${accent}18`,
+                            }}
                           >
-                            <label className="block text-xs font-semibold text-[#6240C8] dark:text-purple-300">
-                              Rename folder
-                            </label>
+                            <FolderIcon size={20} strokeWidth={1.8} />
+                          </div>
 
-                            <Input
-                              value={name}
-                              onChange={(event) => setName(event.target.value)}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter' && !update.isPending) {
-                                  handleUpdate();
-                                }
+                          <div className="min-w-0">
 
-                                if (event.key === 'Escape') {
-                                  cancelEditing();
-                                }
-                              }}
-                              placeholder="Enter folder name"
-                              autoFocus
-                              maxLength={80}
-                              disabled={update.isPending}
-                              className="border-[#DCC8FA] bg-white/90 dark:border-slate-600 dark:bg-slate-800"
-                            />
+                            <div className="flex items-center gap-1.5">
+                              <Sparkles
+                                size={11}
+                                style={{ color: accent }}
+                              />
 
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                onClick={handleUpdate}
-                                disabled={update.isPending || !name.trim()}
+                              <span
+                                className="truncate text-[11px] font-bold uppercase tracking-[0.13em]"
+                                style={{ color: accent }}
                               >
-                                <Check size={14} />
-                                {update.isPending ? 'Saving...' : 'Save'}
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={cancelEditing}
-                                disabled={update.isPending}
-                              >
-                                Cancel
-                              </Button>
+                                Folder collection
+                              </span>
                             </div>
+
+                            <p className="mt-1 text-[11px] text-text-muted">
+                              Personal collection
+                            </p>
+
+                          </div>
+                        </div>
+
+                        {!isEditing && (
+                          <div className="flex shrink-0 items-center gap-1">
+
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                startEditing(folder);
+                              }}
+                              aria-label="Rename folder"
+                              title="Rename"
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-text-muted transition-colors duration-150 hover:bg-accent/10 hover:text-accent"
+                            >
+                              <Pencil size={16} />
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={remove.isPending}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleRemove(folder);
+                              }}
+                              aria-label="Delete folder"
+                              title="Delete"
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-text-muted transition-colors duration-150 hover:bg-danger/10 hover:text-danger disabled:opacity-40"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+
                           </div>
                         )}
+
                       </div>
-                    </div>
 
-                    {/* Folder name */}
-                    {!isEditing && (
-                      <>
-                        <h3 className="mb-1 line-clamp-2 text-lg font-bold leading-snug text-[#10123D] dark:text-slate-100 sm:text-xl">
-                          {folder.name || 'Untitled folder'}
-                        </h3>
+                      {/* Rename area */}
+                      {isEditing ? (
 
-                        <p className="mb-3 line-clamp-2 max-w-[88%] text-sm leading-relaxed text-[#51418F] dark:text-slate-300">
-                          Keep your notes organized in this folder.
-                        </p>
-                      </>
-                    )}
+                        <div
+                          className="flex flex-1 flex-col"
+                          onClick={(event) => event.stopPropagation()}
+                        >
 
-                    {/* Card footer */}
-                    <div className="mt-auto flex items-center justify-between gap-2 border-t border-[#EDE2FA] pt-3 dark:border-slate-700">
-                      <span className="truncate text-xs font-medium text-[#51418F] dark:text-slate-400">
-                        {formatDate(folder.created_at)}
-                      </span>
+                          <label className="mb-2 text-xs font-semibold text-text-main">
+                            Rename folder
+                          </label>
 
-                      {!isEditing && (
-                        <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-[#6240C8] dark:text-purple-400">
-                          Open folder
-                          <ArrowRight
-                            size={14}
-                            className="transition-transform group-hover:translate-x-1"
+                          <Input
+                            value={name}
+                            onChange={(event) => setName(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' && !update.isPending) {
+                                handleUpdate();
+                              }
+
+                              if (event.key === 'Escape') {
+                                cancelEditing();
+                              }
+                            }}
+                            placeholder="Enter folder name"
+                            autoFocus
+                            maxLength={80}
+                            disabled={update.isPending}
+                            className="border-border bg-card"
                           />
-                        </span>
+
+                          <div className="mt-3 flex items-center gap-2">
+
+                            <Button
+                              size="sm"
+                              onClick={handleUpdate}
+                              disabled={update.isPending || !name.trim()}
+                            >
+                              <Check size={14} />
+                              {update.isPending ? 'Saving...' : 'Save'}
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={cancelEditing}
+                              disabled={update.isPending}
+                            >
+                              Cancel
+                            </Button>
+
+                          </div>
+
+                        </div>
+
+                      ) : (
+
+                        <>
+                          {/* Folder title */}
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/app/folders/${folder.id}`)}
+                            className="mb-3 block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                          >
+                            <h3 className="line-clamp-2 break-words text-[21px] font-bold leading-[1.4] tracking-tight text-text-main sm:text-[23px]">
+                              {folder.name?.trim() || 'Untitled folder'}
+                            </h3>
+                          </button>
+
+                          {/* Description */}
+                          <p className="mb-5 text-[13px] leading-[1.85] text-text-muted sm:text-sm">
+                            Keep your notes organized in this folder.
+                          </p>
+                        </>
+
                       )}
 
-                      {isEditing && (
-                        <span className="text-xs font-medium text-[#6240C8] dark:text-purple-400">
-                          Editing
-                        </span>
-                      )}
+                      {/* Footer */}
+                      <div className="mt-auto flex items-center justify-between gap-2 pt-3">
+
+                        <div className="flex min-w-0 items-center gap-2">
+                          <Clock3
+                            size={14}
+                            className="shrink-0 text-text-muted"
+                          />
+
+                          <span className="truncate text-[11px] font-medium text-text-muted">
+                            {formatDate(folder.created_at)}
+                          </span>
+                        </div>
+
+                        {!isEditing ? (
+
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/app/folders/${folder.id}`)}
+                            className="ml-1 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                            style={{ backgroundColor: accent }}
+                          >
+                            Open
+                            <ArrowRight size={14} />
+                          </button>
+
+                        ) : (
+
+                          <span className="text-xs font-medium text-text-muted">
+                            Editing
+                          </span>
+
+                        )}
+
+                      </div>
+
                     </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                  </article>
+                );
+              })}
+
+            </div>
+          </>
         )}
+
       </div>
 
       {/* Create folder dialog */}
@@ -509,6 +660,7 @@ export default function FoldersPage() {
             <Button
               onClick={handleCreate}
               disabled={create.isPending || !name.trim()}
+              className="bg-[#B8326B] text-white hover:bg-[#9F285B]"
             >
               <Plus size={15} />
               {create.isPending ? 'Creating...' : 'Create'}
@@ -531,6 +683,7 @@ export default function FoldersPage() {
           />
         </Field>
       </Dialog>
+
     </div>
   );
 }

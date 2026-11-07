@@ -47,6 +47,7 @@ import {
   AlignLeft,
   Sparkles,
   PenLine,
+  LayoutGrid,
 } from 'lucide-react';
 
 import { excerptFromContent } from '../../lib/utils.js';
@@ -97,6 +98,9 @@ export default function Journal() {
   const [mood, setMood] = useState('calm');
   const [entryDate, setEntryDate] = useState(getToday());
   const [search, setSearch] = useState('');
+  const [previewEntry, setPreviewEntry] = useState(null);
+  const [viewMode, setViewMode] = useState('grid');
+  const [visibleCount, setVisibleCount] = useState(6);
 
   const {
     data,
@@ -127,6 +131,24 @@ export default function Journal() {
       },
     },
   });
+
+  const previewEditor = useEditor({
+    extensions: [StarterKit],
+    editable: false,
+    content: { type: 'doc', content: [{ type: 'paragraph' }] },
+    editorProps: {
+      attributes: {
+        class: 'ProseMirror journal-prose min-h-[180px] px-5 py-5 sm:px-7 sm:py-6 outline-none text-text-main dark:text-slate-200',
+      },
+    },
+  });
+
+  const openPreview = (entry) => {
+    setPreviewEntry(entry);
+    previewEditor?.commands.setContent(
+      entry?.content || { type: 'doc', content: [{ type: 'paragraph' }] }
+    );
+  };
 
   const closeEditor = () => {
     setEditing(null);
@@ -241,6 +263,12 @@ export default function Journal() {
   });
 
   const isSaving = create.isPending || update.isPending;
+  const visibleEntries = filteredEntries.slice(0, visibleCount);
+
+  const handleSearchChange = (value) => {
+    setSearch(value);
+    setVisibleCount(6);
+  };
 
   const toolbarButton = (
     label,
@@ -331,7 +359,7 @@ export default function Journal() {
 
             <Input
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => handleSearchChange(event.target.value)}
               placeholder="Search journal entries..."
               className="bg-white/75 pl-10 pr-10 dark:bg-slate-900/70"
             />
@@ -339,7 +367,7 @@ export default function Journal() {
             {search && (
               <button
                 type="button"
-                onClick={() => setSearch('')}
+                onClick={() => handleSearchChange('')}
                 aria-label="Clear search"
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main"
               >
@@ -368,125 +396,145 @@ export default function Journal() {
 
         {/* Entries */}
         {entries.length === 0 ? (
-          <div className="rounded-[22px] border border-[#E8D8FF] bg-white/75 px-5 py-12 shadow-sm backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/70">
+          <div className="rounded-[22px] border border-border/60 bg-card/70 px-5 py-12 shadow-sm backdrop-blur-xl">
             <EmptyState
               icon={BookOpen}
               title="No journal entries"
               description="Capture how today felt — moods, moments and gratitude."
-              action={
-                <Button onClick={() => openEditor('new')}>
-                  <Plus size={15} />
-                  New entry
-                </Button>
-              }
+              action={<Button onClick={() => openEditor('new')}><Plus size={15} />New entry</Button>}
             />
           </div>
         ) : filteredEntries.length === 0 ? (
-          <div className="rounded-[22px] border border-[#E8D8FF] bg-white/75 px-5 py-12 text-center shadow-sm backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/70">
-            <Search size={28} className="mx-auto mb-3 text-[#62529D]" />
-
-            <p className="font-semibold text-[#10123D] dark:text-slate-100">
-              No matching entries
-            </p>
-
-            <p className="mt-1 text-sm text-[#51418F] dark:text-slate-400">
-              Try searching with another keyword.
-            </p>
+          <div className="rounded-[22px] border border-border/60 bg-card/70 px-5 py-12 text-center shadow-sm backdrop-blur-xl">
+            <Search size={28} className="mx-auto mb-3 text-accent" />
+            <p className="font-semibold text-text-main">No matching entries</p>
+            <p className="mt-1 text-sm text-text-muted">Try searching with another keyword.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredEntries.map((entry) => {
-              const moodMeta = MOODS.find(
-                (item) => item.id === entry.mood
-              );
+          <>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-text-muted">Showing {visibleEntries.length} of {filteredEntries.length} entries</p>
+              <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-card/65 p-1 backdrop-blur-xl">
+                <button type="button" onClick={() => setViewMode('grid')} aria-label="Grid view" aria-pressed={viewMode === 'grid'} className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${viewMode === 'grid' ? 'bg-accent/15 text-accent' : 'text-text-muted hover:bg-card'}`}>
+                  <LayoutGrid size={17} />
+                </button>
+                <button type="button" onClick={() => setViewMode('list')} aria-label="List view" aria-pressed={viewMode === 'list'} className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${viewMode === 'list' ? 'bg-accent/15 text-accent' : 'text-text-muted hover:bg-card'}`}>
+                  <List size={17} />
+                </button>
+              </div>
+            </div>
 
-              return (
-                <article
-                  key={entry.id}
-                  className="group relative isolate flex min-h-[210px] flex-col overflow-hidden rounded-[22px] border border-[#E8D8FF] bg-white/85 shadow-[0_4px_12px_rgba(91,55,150,0.09)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-[#CDA8FF] hover:shadow-[0_12px_28px_rgba(91,55,150,0.15)] dark:border-slate-700 dark:bg-slate-900/85"
-                >
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute -bottom-1 -right-1 z-0 h-[82%] w-[48%] bg-contain bg-right-bottom bg-no-repeat opacity-80 transition-transform duration-500 group-hover:scale-105"
-                    style={{
-                      backgroundImage: `url(${noteFlower})`,
-                    }}
-                  />
+            <div className={viewMode === 'grid' ? 'grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-4'}>
+              {visibleEntries.map((entry) => {
+                const moodMeta = MOODS.find((item) => item.id === entry.mood);
+                return (
+                  <article
+                    key={entry.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openPreview(entry)}
+                    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openPreview(entry); } }}
+                    className={`group relative isolate flex min-h-[285px] cursor-pointer flex-col overflow-hidden rounded-[22px] border border-border/60 bg-card/70 shadow-[0_4px_16px_rgba(50,35,90,0.07)] backdrop-blur-xl transition-all duration-300 hover:border-accent/40 hover:shadow-[0_8px_22px_rgba(50,35,90,0.10)] ${viewMode === 'list' ? 'w-full' : ''}`}
+                  >
+                    <div aria-hidden="true" className="pointer-events-none absolute left-0 top-[22%] z-10 h-[56%] w-[4px] rounded-r-full bg-accent" />
+                    <div aria-hidden="true" className="pointer-events-none absolute -right-3 -top-3 z-0 h-36 w-36 rounded-full bg-accent/20 blur-3xl" />
+                    <div aria-hidden="true" className="pointer-events-none absolute -bottom-1 -right-1 z-0 h-40 w-40 bg-contain bg-right-bottom bg-no-repeat opacity-[0.18] dark:opacity-[0.10]" style={{ backgroundImage: `url(${noteFlower})` }} />
 
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-r from-white via-white/95 to-white/10 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900/30"
-                  />
-
-                  <div className="relative z-10 flex flex-1 flex-col p-4 sm:p-5">
-                    <div className="mb-4 flex items-start justify-between gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F1E8FF] text-2xl dark:bg-purple-950/50">
-                        {moodMeta?.emoji || '📝'}
+                    <div className="relative z-10 flex flex-1 flex-col p-5 pl-6 sm:p-6 sm:pl-7">
+                      <div className="mb-6 flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-surface/80 text-2xl shadow-sm backdrop-blur-lg">
+                            {moodMeta?.emoji || '📝'}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-text-muted">JOURNAL ENTRY</p>
+                            <p className="mt-0.5 text-xs text-text-muted">{formatDate(entry.entry_date)}</p>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button type="button" onClick={(event) => { event.stopPropagation(); openEditor(entry); }} aria-label="Edit entry" title="Edit" className="flex h-9 w-9 items-center justify-center rounded-xl text-text-muted transition hover:bg-accent/10 hover:text-accent">
+                            <Pencil size={16} />
+                          </button>
+                          <button type="button" disabled={remove.isPending} onClick={(event) => { event.stopPropagation(); handleRemove(entry); }} aria-label="Delete entry" title="Delete" className="flex h-9 w-9 items-center justify-center rounded-xl text-text-muted transition hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => openEditor(entry)}
-                          aria-label="Edit entry"
-                          title="Edit"
-                          className="flex h-9 w-9 items-center justify-center rounded-xl text-[#51418F] transition hover:bg-[#F1E8FF] dark:text-slate-300 dark:hover:bg-slate-800"
-                        >
-                          <Pencil size={16} />
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled={remove.isPending}
-                          onClick={() => handleRemove(entry)}
-                          aria-label="Delete entry"
-                          title="Delete"
-                          className="flex h-9 w-9 items-center justify-center rounded-xl text-[#51418F] transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-red-950/30"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <h3 className="mb-2 line-clamp-2 text-lg font-bold leading-snug text-[#10123D] dark:text-slate-100">
-                      {entry.title || 'Untitled entry'}
-                    </h3>
-
-                    <p className="mb-4 line-clamp-3 max-w-[90%] text-sm leading-relaxed text-[#51418F] dark:text-slate-300">
-                      {excerptFromContent(entry.content) ||
-                        'A personal moment captured in your journal.'}
-                    </p>
-
-                    <div className="mt-auto flex items-center justify-between gap-2 border-t border-[#EDE2FA] pt-3 dark:border-slate-700">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <CalendarDays
-                          size={14}
-                          className="shrink-0 text-[#62529D]"
-                        />
-
-                        <span className="truncate text-xs font-medium text-[#51418F] dark:text-slate-400">
-                          {formatDate(entry.entry_date)}
+                      <h3 className="mb-3 line-clamp-2 text-[21px] font-bold leading-snug tracking-tight text-text-main">
+                        {entry.title || 'Untitled entry'}
+                      </h3>
+                      <p className="mb-5 line-clamp-4 max-w-[95%] text-[13px] leading-[1.85] text-text-muted">
+                        {excerptFromContent(entry.content) || 'No description added yet.'}
+                      </p>
+                      <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/50 pt-4">
+                        <span className="text-xs font-medium text-text-muted">Click to read full entry</span>
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ color: moodMeta?.color || '#64748B', backgroundColor: `${moodMeta?.color || '#64748B'}15` }}>
+                          {moodMeta?.emoji || '📝'} {moodMeta?.label || 'No mood'}
                         </span>
                       </div>
-
-                      <span
-                        className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                        style={{
-                          color: moodMeta?.color || '#64748B',
-                          backgroundColor: `${moodMeta?.color || '#64748B'}15`,
-                        }}
-                      >
-                        {moodMeta?.emoji || '📝'}
-                        {moodMeta?.label || 'No mood'}
-                      </span>
                     </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {filteredEntries.length > visibleCount && (
+              <div className="mt-7 flex justify-center">
+                <Button variant="outline" onClick={() => setVisibleCount((count) => count + 6)}>Show more (+6)</Button>
+              </div>
+            )}
+            {visibleCount > 6 && filteredEntries.length > 0 && (
+              <div className="mt-3 flex justify-center">
+                <Button variant="ghost" onClick={() => setVisibleCount(6)}>Show less</Button>
+              </div>
+            )}
+          </>
         )}
       </div>
+
+      {/* Full journal preview */}
+      <Dialog
+        open={!!previewEntry}
+        onClose={() => setPreviewEntry(null)}
+        title="Journal preview"
+        size="lg"
+        footer={
+          <div className="flex w-full items-center justify-between gap-2">
+            <Button variant="ghost" onClick={() => setPreviewEntry(null)}>Close</Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => { const entry = previewEntry; setPreviewEntry(null); openEditor(entry); }}>
+                <Pencil size={15} /> Edit entry
+              </Button>
+              <Button onClick={() => { const entry = previewEntry; setPreviewEntry(null); if (entry) handleRemove(entry); }}>
+                <Trash2 size={15} /> Delete
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        {previewEntry && (() => {
+          const previewMood = MOODS.find((item) => item.id === previewEntry.mood);
+          return (
+            <div className="relative isolate overflow-hidden rounded-2xl border border-border/60 bg-card/70 backdrop-blur-xl">
+              <div aria-hidden="true" className="pointer-events-none absolute -right-3 -top-3 h-36 w-36 rounded-full bg-accent/15 blur-3xl" />
+              <div aria-hidden="true" className="pointer-events-none absolute -bottom-1 -right-1 h-40 w-40 bg-contain bg-right-bottom bg-no-repeat opacity-[0.12] dark:opacity-[0.08]" style={{ backgroundImage: `url(${noteFlower})` }} />
+              <div className="relative z-10 p-5 sm:p-7">
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4">
+                  <div className="flex items-center gap-2 text-sm text-text-muted"><CalendarDays size={15} />{formatDate(previewEntry.entry_date)}</div>
+                  <span className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold" style={{ color: previewMood?.color || '#64748B', backgroundColor: `${previewMood?.color || '#64748B'}15` }}>
+                    {previewMood?.emoji || '📝'} {previewMood?.label || 'No mood'}
+                  </span>
+                </div>
+                <h2 className="mb-5 text-2xl font-bold tracking-tight text-text-main sm:text-3xl">{previewEntry.title || 'Untitled entry'}</h2>
+                <div className="max-h-[55vh] overflow-y-auto rounded-xl border border-border/40 bg-surface/40">
+                  <EditorContent editor={previewEditor} />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </Dialog>
 
       {/* Journal Editor */}
       <Dialog

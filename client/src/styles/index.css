@@ -1,360 +1,939 @@
+
+/* =========================================================
+   BLOOMNOTES — GLOBAL DESIGN SYSTEM
+   Theme: Sakura Blossom / Midnight Rose
+   Font: Inter
+   Supports: Light, Dark and 8 Note Themes
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   1. FONT AND TAILWIND
+   --------------------------------------------------------- */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 
-body {
-  font-family: 'Inter', sans-serif;
-}
-/* 
-===========================================================================
-   BloomNotes — Design Tokens (CSS variables)
-   ===========================================================================
-   Two parent themes:
-     [data-theme="light"]  -> Sakura Blossom
-     [data-theme="dark"]   -> Midnight Rose
-   Eight note themes (applied to <html data-note-theme="..."> while a note is open):
-     sakura_pink, lavender_garden, botanical_garden, midnight_rose,
-     blue_hydrangea, peach_blossom, daisy_minimal, moonlit_garden
-   =========================================================================== */
+/* ---------------------------------------------------------
+   2. ROOT THEME — DEFAULT LIGHT
+   --------------------------------------------------------- */
 
 :root {
-  /* Default to Sakura Blossom (light) until ThemeProvider decides. */
-  --c-bg: 255 249 252;          /* #FFF9FC */
-  --c-bg-secondary: 255 241 246;
-  --c-surface: 255 255 255;
-  --c-surface-2: 252 229 238;
-  --c-card: 255 255 255;
-  --c-accent: 217 106 145;      /* #D96A91 */
-  --c-accent-2: 233 164 189;    /* #E9A4BD */
-  --c-text: 56 38 50;           /* #382632 */
-  --c-text-muted: 140 120 133;
-  --c-border: 241 220 229;
-  --c-highlight: 252 229 238;
-  --c-input: 252 240 246;
+  --c-bg: 249 247 250;
+  --c-bg-secondary: 243 239 247;
 
-  --shadow-soft: 0 1px 2px rgba(56, 38, 50, 0.04), 0 4px 12px rgba(56, 38, 50, 0.05);
-  --shadow-card: 0 2px 6px rgba(56, 38, 50, 0.06), 0 10px 24px rgba(217, 106, 145, 0.08);
-  --shadow-focus: 0 0 0 3px rgba(217, 106, 145, 0.25);
+  --c-surface: 255 255 255;
+  --c-surface-2: 246 242 249;
+
+  --c-card: 255 255 255;
+
+  --c-accent: 190 105 151;
+  --c-accent-2: 222 165 194;
+
+  --c-text: 48 39 52;
+  --c-text-muted: 112 103 119;
+
+  --c-border: 230 223 234;
+  --c-highlight: 244 237 247;
+  --c-input: 250 248 251;
+
+  --c-success: 56 145 105;
+  --c-warning: 190 130 48;
+  --c-danger: 205 79 91;
+  --c-info: 83 125 190;
+
+  --c-overlay: 255 255 255;
+
+  --shadow-soft:
+    0 1px 2px rgba(35, 25, 45, 0.03),
+    0 4px 12px rgba(35, 25, 45, 0.04);
+
+  --shadow-card:
+    0 2px 5px rgba(35, 25, 45, 0.035),
+    0 8px 24px rgba(35, 25, 45, 0.045);
+
+  --shadow-hover:
+    0 8px 24px rgba(35, 25, 45, 0.09);
+
+  --shadow-focus:
+    0 0 0 3px rgba(190, 105, 151, 0.22);
+
+  --radius-card: 16px;
+  --radius-control: 11px;
+
+  --font-main: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   color-scheme: light;
 }
 
-/* Sakura Blossom — light parent theme */
+
+/* ---------------------------------------------------------
+   3. LIGHT THEME — SAKURA BLOSSOM
+   --------------------------------------------------------- */
+
 [data-theme='light'] {
-  --c-bg: 255 249 252;
-  --c-bg-secondary: 255 241 246;
+  --c-bg: 249 247 250;
+  --c-bg-secondary: 243 239 247;
+
   --c-surface: 255 255 255;
-  --c-surface-2: 252 229 238;
+  --c-surface-2: 246 242 249;
+
   --c-card: 255 255 255;
-  --c-accent: 217 106 145;
-  --c-accent-2: 233 164 189;
-  --c-text: 56 38 50;
-  --c-text-muted: 140 120 133;
-  --c-border: 241 220 229;
-  --c-highlight: 252 229 238;
-  --c-input: 252 240 246;
+
+  --c-accent: 190 105 151;
+  --c-accent-2: 222 165 194;
+
+  --c-text: 48 39 52;
+  --c-text-muted: 112 103 119;
+
+  --c-border: 230 223 234;
+  --c-highlight: 244 237 247;
+  --c-input: 250 248 251;
+
+  --c-overlay: 255 255 255;
+
   color-scheme: light;
 }
 
-/* Midnight Rose — dark parent theme */
+
+/* ---------------------------------------------------------
+   4. DARK THEME — MIDNIGHT ROSE
+   --------------------------------------------------------- */
+
 [data-theme='dark'] {
-  --c-bg: 23 18 25;             /* #171219 */
-  --c-bg-secondary: 33 25 35;
-  --c-surface: 41 31 42;
-  --c-surface-2: 51 37 51;
-  --c-card: 41 31 42;
-  --c-accent: 217 130 166;      /* #D982A6 */
-  --c-accent-2: 168 107 141;
-  --c-text: 248 237 243;
-  --c-text-muted: 184 164 178;
-  --c-border: 73 54 71;
-  --c-highlight: 64 42 58;
-  --c-input: 33 25 35;
+  --c-bg: 24 21 29;
+  --c-bg-secondary: 32 27 38;
+
+  --c-surface: 39 33 46;
+  --c-surface-2: 49 41 57;
+
+  --c-card: 39 33 46;
+
+  --c-accent: 218 139 176;
+  --c-accent-2: 171 116 151;
+
+  --c-text: 245 239 248;
+  --c-text-muted: 187 176 195;
+
+  --c-border: 70 59 78;
+  --c-highlight: 54 45 62;
+  --c-input: 32 27 38;
+
+  --c-overlay: 24 21 29;
+
+  --shadow-soft:
+    0 1px 2px rgba(0, 0, 0, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.12);
+
+  --shadow-card:
+    0 2px 6px rgba(0, 0, 0, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.15);
+
+  --shadow-hover:
+    0 8px 24px rgba(0, 0, 0, 0.25);
+
+  --shadow-focus:
+    0 0 0 3px rgba(218, 139, 176, 0.25);
+
   color-scheme: dark;
 }
 
-/* ---------------------------------------------------------------------------
-   Eight persistent note themes
-   While a note is open, <html data-note-theme="<id>"> is set, which overrides
-   the parent tokens for ALL application surfaces (sidebar, header, editor, ...).
-   Closing the note removes the attribute -> parent theme restored.
-   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------
+   5. NOTE THEME — SAKURA PINK
+   --------------------------------------------------------- */
 
 [data-note-theme='sakura_pink'] {
   --c-bg: 255 249 252;
-  --c-bg-secondary: 255 236 244;
+  --c-bg-secondary: 255 240 246;
+
   --c-surface: 255 255 255;
-  --c-surface-2: 252 222 235;
-  --c-card: 255 251 253;
+  --c-surface-2: 252 231 239;
+  --c-card: 255 253 254;
+
   --c-accent: 217 106 145;
   --c-accent-2: 233 164 189;
+
   --c-text: 56 38 50;
-  --c-text-muted: 140 120 133;
-  --c-border: 241 207 220;
-  --c-highlight: 252 224 236;
-  --c-input: 252 235 243;
+  --c-text-muted: 125 101 116;
+
+  --c-border: 241 215 227;
+  --c-highlight: 252 232 241;
+  --c-input: 252 240 246;
+
   color-scheme: light;
 }
+
+
+/* ---------------------------------------------------------
+   6. NOTE THEME — LAVENDER GARDEN
+   --------------------------------------------------------- */
 
 [data-note-theme='lavender_garden'] {
   --c-bg: 248 246 252;
   --c-bg-secondary: 240 234 250;
+
   --c-surface: 255 255 255;
   --c-surface-2: 235 226 248;
   --c-card: 252 250 255;
+
   --c-accent: 150 110 200;
   --c-accent-2: 192 168 224;
+
   --c-text: 50 38 70;
-  --c-text-muted: 130 116 156;
+  --c-text-muted: 113 99 139;
+
   --c-border: 226 213 245;
   --c-highlight: 236 226 250;
   --c-input: 244 238 252;
+
   color-scheme: light;
 }
+
+
+/* ---------------------------------------------------------
+   7. NOTE THEME — BOTANICAL GARDEN
+   --------------------------------------------------------- */
 
 [data-note-theme='botanical_garden'] {
   --c-bg: 245 250 246;
   --c-bg-secondary: 232 244 236;
+
   --c-surface: 255 255 255;
   --c-surface-2: 222 240 228;
   --c-card: 251 255 252;
+
   --c-accent: 88 144 98;
   --c-accent-2: 156 198 162;
+
   --c-text: 34 50 38;
-  --c-text-muted: 110 130 116;
+  --c-text-muted: 99 119 105;
+
   --c-border: 209 232 217;
   --c-highlight: 224 240 228;
   --c-input: 238 248 242;
+
   color-scheme: light;
 }
 
+
+/* ---------------------------------------------------------
+   8. NOTE THEME — MIDNIGHT ROSE
+   --------------------------------------------------------- */
+
 [data-note-theme='midnight_rose'] {
-  --c-bg: 23 18 25;
-  --c-bg-secondary: 33 25 35;
-  --c-surface: 41 31 42;
-  --c-surface-2: 56 38 52;
-  --c-card: 47 35 48;
-  --c-accent: 217 130 166;
-  --c-accent-2: 168 107 141;
-  --c-text: 248 237 243;
-  --c-text-muted: 184 164 178;
-  --c-border: 73 54 71;
-  --c-highlight: 64 42 58;
-  --c-input: 33 25 35;
+  --c-bg: 24 21 29;
+  --c-bg-secondary: 32 27 38;
+
+  --c-surface: 39 33 46;
+  --c-surface-2: 56 43 57;
+  --c-card: 45 37 50;
+
+  --c-accent: 218 139 176;
+  --c-accent-2: 171 116 151;
+
+  --c-text: 245 239 248;
+  --c-text-muted: 187 176 195;
+
+  --c-border: 70 59 78;
+  --c-highlight: 54 45 62;
+  --c-input: 32 27 38;
+
   color-scheme: dark;
 }
+
+
+/* ---------------------------------------------------------
+   9. NOTE THEME — BLUE HYDRANGEA
+   --------------------------------------------------------- */
 
 [data-note-theme='blue_hydrangea'] {
   --c-bg: 244 248 252;
   --c-bg-secondary: 230 240 250;
+
   --c-surface: 255 255 255;
   --c-surface-2: 218 232 248;
   --c-card: 250 252 255;
+
   --c-accent: 90 130 200;
   --c-accent-2: 168 196 232;
+
   --c-text: 32 44 64;
-  --c-text-muted: 110 124 150;
+  --c-text-muted: 100 116 143;
+
   --c-border: 209 224 242;
   --c-highlight: 222 234 250;
   --c-input: 238 244 252;
+
   color-scheme: light;
 }
+
+
+/* ---------------------------------------------------------
+   10. NOTE THEME — PEACH BLOSSOM
+   --------------------------------------------------------- */
 
 [data-note-theme='peach_blossom'] {
   --c-bg: 255 247 244;
   --c-bg-secondary: 255 234 226;
+
   --c-surface: 255 255 255;
   --c-surface-2: 252 220 208;
   --c-card: 255 250 248;
-  --c-accent: 230 130 100;
+
+  --c-accent: 210 112 83;
   --c-accent-2: 240 178 152;
+
   --c-text: 64 38 30;
-  --c-text-muted: 145 110 96;
+  --c-text-muted: 125 91 79;
+
   --c-border: 247 220 209;
   --c-highlight: 252 222 210;
   --c-input: 254 240 232;
+
   color-scheme: light;
 }
+
+
+/* ---------------------------------------------------------
+   11. NOTE THEME — DAISY MINIMAL
+   --------------------------------------------------------- */
 
 [data-note-theme='daisy_minimal'] {
   --c-bg: 253 252 244;
   --c-bg-secondary: 248 246 230;
+
   --c-surface: 255 255 252;
   --c-surface-2: 245 240 218;
   --c-card: 254 253 247;
-  --c-accent: 200 170 70;
+
+  --c-accent: 170 139 49;
   --c-accent-2: 224 200 120;
+
   --c-text: 56 50 30;
-  --c-text-muted: 130 122 92;
+  --c-text-muted: 112 105 78;
+
   --c-border: 234 226 200;
   --c-highlight: 245 238 214;
   --c-input: 250 246 232;
+
   color-scheme: light;
 }
+
+
+/* ---------------------------------------------------------
+   12. NOTE THEME — MOONLIT GARDEN
+   --------------------------------------------------------- */
 
 [data-note-theme='moonlit_garden'] {
   --c-bg: 22 24 38;
   --c-bg-secondary: 30 32 50;
+
   --c-surface: 38 40 60;
   --c-surface-2: 50 52 76;
   --c-card: 42 44 66;
+
   --c-accent: 150 160 220;
   --c-accent-2: 110 120 190;
+
   --c-text: 238 240 250;
-  --c-text-muted: 168 174 200;
+  --c-text-muted: 174 181 207;
+
   --c-border: 64 68 96;
   --c-highlight: 56 60 88;
   --c-input: 30 32 50;
+
   color-scheme: dark;
 }
 
-/* ---------------------------------------------------------------------------
-   Base / typography
-   --------------------------------------------------------------------------- */
-* { box-sizing: border-box; }
 
-html, body, #root {
+/* ---------------------------------------------------------
+   13. GLOBAL RESET
+   --------------------------------------------------------- */
+
+* {
+  box-sizing: border-box;
+
+  scrollbar-color: rgb(var(--c-border)) transparent;
+  scrollbar-width: thin;
+}
+
+html,
+body,
+#root {
+  width: 100%;
   height: 100%;
+  min-height: 100%;
+}
+
+html {
+  background: rgb(var(--c-bg));
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
+
   background: rgb(var(--c-bg));
   color: rgb(var(--c-text));
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
-  font-size: 15px;
+
+  font-family: var(--font-main);
+  font-size: 14px;
   line-height: 1.55;
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 320ms cubic-bezier(0.4, 0, 0.2, 1),
-              color 320ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  transition:
+    background-color 220ms ease,
+    color 220ms ease;
 }
 
-[data-reduced-motion='true'] body,
-[data-reduced-motion='true'] * {
-  transition: none !important;
-  animation: none !important;
+
+/* ---------------------------------------------------------
+   14. CONSISTENT TYPOGRAPHY
+   --------------------------------------------------------- */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-top: 0;
+
+  color: rgb(var(--c-text));
+
+  font-family: var(--font-main);
+  font-weight: 600;
+
+  letter-spacing: -0.025em;
 }
 
-h1, h2, h3, h4 { font-family: 'Playfair Display', Georgia, serif; color: rgb(var(--c-text)); }
-
-a { color: rgb(var(--c-accent)); text-decoration: none; }
-a:hover { text-decoration: underline; }
-
-::selection { background: rgb(var(--c-accent) / 0.25); }
-
-/* Scrollbar */
-* {
-  scrollbar-color: rgb(var(--c-border)) transparent;
-  scrollbar-width: thin;
+p {
+  color: inherit;
 }
-*::-webkit-scrollbar { width: 10px; height: 10px; }
-*::-webkit-scrollbar-thumb { background: rgb(var(--c-border)); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
-*::-webkit-scrollbar-thumb:hover { background: rgb(var(--c-accent-2)); background-clip: padding-box; border: 2px solid transparent; }
 
-/* Focus rings */
-:where(button, a, input, textarea, select, [tabindex]):focus-visible {
+button,
+input,
+textarea,
+select,
+option {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+a {
+  color: rgb(var(--c-accent));
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+::selection {
+  background: rgb(var(--c-accent) / 0.22);
+  color: rgb(var(--c-text));
+}
+
+
+/* ---------------------------------------------------------
+   15. SCROLLBARS
+   --------------------------------------------------------- */
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgb(var(--c-border));
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--c-accent-2));
+  background-clip: padding-box;
+}
+
+
+/* ---------------------------------------------------------
+   16. ACCESSIBLE FOCUS
+   --------------------------------------------------------- */
+
+:where(
+  button,
+  a,
+  input,
+  textarea,
+  select,
+  [tabindex]
+):focus-visible {
   outline: 2px solid rgb(var(--c-accent));
-  outline-offset: 2px;
-  border-radius: 6px;
+  outline-offset: 3px;
 }
 
-/* ---------------------------------------------------------------------------
-   Reusable component classes
-   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------
+   17. REUSABLE BLOOMNOTES COMPONENTS
+   --------------------------------------------------------- */
+
 @layer components {
+
+  /* Standard card */
+
   .bn-card {
-    @apply bg-card border border-border rounded-xl2 shadow-card;
+    @apply rounded-2xl border border-border shadow-card;
+    background: rgb(var(--c-card) / 0.66);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
   }
+
+  /* Primary button */
+
   .bn-btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl2 px-4 py-2 text-sm font-medium
-           transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-           focus-visible:outline-2 focus-visible:outline-offset-2;
+    @apply inline-flex items-center justify-center gap-2
+    rounded-xl px-4 py-2.5
+    text-sm font-medium
+    transition-colors duration-200
+    disabled:cursor-not-allowed disabled:opacity-50
+    focus-visible:outline-2 focus-visible:outline-offset-2;
   }
+
   .bn-btn-primary {
-    @apply bn-btn bg-accent text-white hover:bg-accent/90;
+    @apply bn-btn bg-accent text-white hover:opacity-90;
   }
+
   .bn-btn-ghost {
     @apply bn-btn text-text-main hover:bg-highlight;
   }
+
   .bn-btn-outline {
     @apply bn-btn border border-border text-text-main hover:bg-highlight;
   }
+
+  /* Inputs */
+
   .bn-input {
-    @apply w-full rounded-xl2 border border-border bg-input px-3 py-2 text-sm text-text-main
-           placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors;
+    @apply w-full rounded-xl border border-border
+    bg-input px-3 py-2.5
+    text-sm text-text-main
+    placeholder:text-text-muted
+    transition-colors
+    focus:border-accent focus:outline-none;
   }
+
   .bn-label {
-    @apply block text-xs font-medium text-text-muted mb-1.5;
+    @apply mb-1.5 block text-xs font-medium text-text-muted;
   }
+
+  /* Chips */
+
   .bn-chip {
-    @apply inline-flex items-center gap-1 rounded-full bg-highlight px-2.5 py-1 text-xs
-           text-text-main;
+    @apply inline-flex items-center gap-1
+    rounded-full bg-highlight px-2.5 py-1
+    text-xs font-medium text-text-main;
   }
+
+  /* Divider */
+
   .bn-divider {
     @apply h-px w-full bg-border;
   }
+
+  /* Page container */
+
+  .bn-container {
+    @apply mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8;
+  }
+
+  /* Section heading */
+
+  .bn-section-title {
+    @apply text-base font-semibold tracking-tight text-text-main;
+  }
+
+  /* Secondary text */
+
+  .bn-muted {
+    @apply text-sm text-text-muted;
+  }
 }
 
-/* ---------------------------------------------------------------------------
-   Tiptap editor styling
-   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------
+   18. APPLICATION SURFACES
+   --------------------------------------------------------- */
+
+.bn-surface {
+  background-color: rgb(var(--c-surface));
+  border: 1px solid rgb(var(--c-border));
+}
+
+.bn-surface-secondary {
+  background-color: rgb(var(--c-surface-2));
+}
+
+.bn-glass {
+  background-color: rgb(var(--c-card) / 0.64) !important;
+  border: 1px solid rgb(var(--c-border) / 0.72);
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
+  backdrop-filter: blur(16px) saturate(125%);
+  box-shadow: var(--shadow-card);
+}
+
+/* Use on Dashboard cards when the page background image should remain visible. */
+.bn-glass-card {
+  background-color: rgb(var(--c-card) / 0.64) !important;
+  border: 1px solid rgb(var(--c-border) / 0.72);
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
+  backdrop-filter: blur(16px) saturate(125%);
+  box-shadow: var(--shadow-card);
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.bn-glass-card:hover {
+  border-color: rgb(var(--c-accent) / 0.48);
+}
+
+/* Slightly more transparent in dark mode so the wallpaper is still visible. */
+[data-theme='dark'] .bn-glass,
+[data-theme='dark'] .bn-glass-card {
+  background-color: rgb(var(--c-card) / 0.60) !important;
+  border-color: rgb(var(--c-border) / 0.78);
+}
+
+/* Note themes override the parent theme's card colors automatically. */
+[data-note-theme] .bn-glass,
+[data-note-theme] .bn-glass-card {
+  background-color: rgb(var(--c-card) / 0.64) !important;
+}
+
+/* Keep card text readable over detailed wallpapers. */
+.bn-glass,
+.bn-glass-card {
+  color: rgb(var(--c-text));
+}
+
+.bn-glass :where(h1, h2, h3, h4, p, span, label),
+.bn-glass-card :where(h1, h2, h3, h4, p, span, label) {
+  text-shadow: 0 1px 1px rgb(var(--c-bg) / 0.10);
+}
+
+.bn-page {
+  min-height: 100%;
+  width: 100%;
+  color: rgb(var(--c-text));
+}
+
+.bn-muted {
+  color: rgb(var(--c-text-muted));
+}
+
+
+/* ---------------------------------------------------------
+   19. FORM CONTROLS
+   --------------------------------------------------------- */
+
+input,
+textarea,
+select {
+  color: rgb(var(--c-text));
+  background-color: rgb(var(--c-input));
+  border-color: rgb(var(--c-border));
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgb(var(--c-text-muted));
+  opacity: 0.85;
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: rgb(var(--c-accent));
+}
+
+
+/* ---------------------------------------------------------
+   20. Tiptap EDITOR
+   --------------------------------------------------------- */
+
 .ProseMirror {
   min-height: 60vh;
+
   outline: none;
+
   color: rgb(var(--c-text));
+
+  font-family: var(--font-main);
   font-size: var(--editor-font-size, 15px);
-  line-height: 1.7;
+  line-height: 1.8;
 }
-.ProseMirror p { margin: 0.4em 0; }
-.ProseMirror h1 { font-size: 1.7em; margin: 0.6em 0 0.3em; }
-.ProseMirror h2 { font-size: 1.4em; margin: 0.6em 0 0.3em; }
-.ProseMirror h3 { font-size: 1.15em; margin: 0.6em 0 0.3em; }
-.ProseMirror ul { list-style: disc; padding-left: 1.4em; }
-.ProseMirror ol { list-style: decimal; padding-left: 1.4em; }
+
+.ProseMirror p {
+  margin: 0.5em 0;
+}
+
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3 {
+  color: rgb(var(--c-text));
+  font-family: var(--font-main);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.ProseMirror h1 {
+  font-size: 1.8em;
+  margin: 0.7em 0 0.35em;
+}
+
+.ProseMirror h2 {
+  font-size: 1.45em;
+  margin: 0.7em 0 0.35em;
+}
+
+.ProseMirror h3 {
+  font-size: 1.2em;
+  margin: 0.7em 0 0.35em;
+}
+
+.ProseMirror ul {
+  list-style: disc;
+  padding-left: 1.5em;
+}
+
+.ProseMirror ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+}
+
 .ProseMirror blockquote {
   border-left: 3px solid rgb(var(--c-accent-2));
   padding-left: 1em;
   color: rgb(var(--c-text-muted));
-  margin: 0.6em 0;
+  margin: 0.8em 0;
 }
+
 .ProseMirror pre {
   background: rgb(var(--c-surface-2));
-  border-radius: 0.5rem;
-  padding: 0.8em 1em;
+  border: 1px solid rgb(var(--c-border));
+  border-radius: 10px;
+  padding: 1em;
+  overflow-x: auto;
+
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.9em;
-  overflow-x: auto;
 }
+
 .ProseMirror code {
   background: rgb(var(--c-surface-2));
-  padding: 0.1em 0.35em;
-  border-radius: 0.35rem;
+  padding: 0.15em 0.4em;
+  border-radius: 5px;
+
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.9em;
 }
-.ProseMirror a { color: rgb(var(--c-accent)); text-decoration: underline; }
-.ProseMirror hr { border: 0; border-top: 1px solid rgb(var(--c-border)); margin: 1.2em 0; }
-.ProseMirror ul[data-type='taskList'] { list-style: none; padding: 0; }
-.ProseMirror ul[data-type='taskList'] li { display: flex; gap: 0.5em; align-items: flex-start; }
-.ProseMirror ul[data-type='taskList'] li > label { flex-shrink: 0; }
-.ProseMirror mark { background: rgb(var(--c-accent-2) / 0.4); border-radius: 2px; padding: 0 2px; }
 
-/* Floating petals (decorative, optional) */
-.bn-petal {
-  position: fixed;
-  top: -5vh;
-  width: 14px; height: 14px;
-  background: radial-gradient(circle at 30% 30%, rgb(var(--c-accent-2)), rgb(var(--c-accent)));
-  border-radius: 50% 0 50% 0;
-  opacity: 0.5;
-  pointer-events: none;
-  animation: bn-fall 18s linear infinite;
-  z-index: 0;
+.ProseMirror a {
+  color: rgb(var(--c-accent));
+  text-decoration: underline;
 }
-@keyframes bn-fall {
-  0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
-  100% { transform: translate3d(40px, 110vh, 0) rotate(360deg); }
+
+.ProseMirror hr {
+  border: 0;
+  border-top: 1px solid rgb(var(--c-border));
+  margin: 1.3em 0;
+}
+
+.ProseMirror ul[data-type='taskList'] {
+  list-style: none;
+  padding: 0;
+}
+
+.ProseMirror ul[data-type='taskList'] li {
+  display: flex;
+  gap: 0.6em;
+  align-items: flex-start;
+}
+
+.ProseMirror ul[data-type='taskList'] li > label {
+  flex-shrink: 0;
+}
+
+.ProseMirror mark {
+  background: rgb(var(--c-accent-2) / 0.4);
+  border-radius: 3px;
+  padding: 0 3px;
+}
+
+
+/* ---------------------------------------------------------
+   21. TABLES
+   --------------------------------------------------------- */
+
+.bn-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: rgb(var(--c-text));
+}
+
+.bn-table th,
+.bn-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgb(var(--c-border));
+  text-align: left;
+}
+
+.bn-table th {
+  background: rgb(var(--c-surface-2));
+  color: rgb(var(--c-text-muted));
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bn-table tr:hover td {
+  background: rgb(var(--c-highlight));
+}
+
+
+/* ---------------------------------------------------------
+   22. STATUS COLORS
+   --------------------------------------------------------- */
+
+.bn-success {
+  color: rgb(var(--c-success));
+}
+
+.bn-warning {
+  color: rgb(var(--c-warning));
+}
+
+.bn-danger {
+  color: rgb(var(--c-danger));
+}
+
+.bn-info {
+  color: rgb(var(--c-info));
+}
+
+
+/* ---------------------------------------------------------
+   23. RESPONSIVE HELPERS
+   --------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  body {
+    font-size: 14px;
+  }
+
+  .ProseMirror {
+    min-height: 45vh;
+  }
+
+  .bn-container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   24. REDUCED MOTION
+   --------------------------------------------------------- */
+
+[data-reduced-motion='true'] *,
+[data-reduced-motion='true'] *::before,
+[data-reduced-motion='true'] *::after {
+  transition: none !important;
+  animation: none !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   25. DASHBOARD WALLPAPER + GLASS CARD SUPPORT
+   --------------------------------------------------------- */
+
+/* Do not paint an opaque page surface over the AppLayout wallpaper. */
+.bn-page-transparent {
+  background: transparent !important;
+}
+
+/* Reusable translucent surface for cards and panels. */
+.bn-glass-panel {
+  background: rgb(var(--c-card) / 0.64) !important;
+  border: 1px solid rgb(var(--c-border) / 0.72);
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
+  backdrop-filter: blur(16px) saturate(125%);
+  box-shadow: var(--shadow-card);
+}
+
+[data-theme='dark'] .bn-glass-panel {
+  background: rgb(var(--c-card) / 0.60) !important;
+}
+
+/* Accessible text colors remain fully opaque. */
+.bn-glass-panel,
+.bn-glass-panel h1,
+.bn-glass-panel h2,
+.bn-glass-panel h3,
+.bn-glass-panel p {
+  color: rgb(var(--c-text));
+}
+
+.bn-glass-panel .bn-muted {
+  color: rgb(var(--c-text-muted));
+}
+
+@media (max-width: 640px) {
+  .bn-glass,
+  .bn-glass-card,
+  .bn-glass-panel {
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
 }

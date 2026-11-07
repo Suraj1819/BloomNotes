@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -52,6 +51,9 @@ import {
   Pencil,
   FileText,
   Clock3,
+  Maximize2,
+  Minimize2,
+  PanelRight,
 } from 'lucide-react';
 
 import {
@@ -78,7 +80,7 @@ import {
   excerptFromContent,
 } from '../../lib/utils.js';
 
-import lavenderBackground from '../../../assets/background/lavender.png';
+import lavenderBackground from '../../../assets/background/fav3.png';
 
 const EMPTY_CONTENT = {
   type: 'doc',
@@ -297,7 +299,11 @@ export default function NoteEditor() {
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [folderName, setFolderName] = useState('');
 
-  const [mobileToolbarOpen, setMobileToolbarOpen] = useState(false);
+  // NEW: sticky sidebar + full screen writing
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => typeof window === 'undefined' || window.innerWidth >= 1024
+  );
+  const [focusMode, setFocusMode] = useState(false);
 
   const [saveState, setSaveState] = useState('idle');
   const [lastSavedAt, setLastSavedAt] = useState(null);
@@ -750,6 +756,21 @@ export default function NoteEditor() {
       editor.off('update', handleEditorUpdate);
     };
   }, [editor, note, isNew, scheduleSave]);
+
+  // ---------------------------------------------------------------------------
+  // Full screen: Esc to exit
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!focusMode) return;
+
+    const onKey = (event) => {
+      if (event.key === 'Escape') setFocusMode(false);
+    };
+
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [focusMode]);
 
   // ---------------------------------------------------------------------------
   // Title Change
@@ -1222,17 +1243,23 @@ export default function NoteEditor() {
     setTagsMutation.isPending ||
     createFolder.isPending;
 
+  const showSidebar = sidebarOpen && !focusMode;
+
   // ---------------------------------------------------------------------------
   // UI
   // ---------------------------------------------------------------------------
 
   return (
     <div
-      className="
-        relative isolate mx-auto flex h-full min-h-0 w-full
-        max-w-7xl flex-col overflow-hidden bg-background
-        px-0 sm:px-4 sm:py-4 lg:px-6
-      "
+      className={`
+        relative isolate flex min-h-0 w-full flex-col
+        overflow-hidden bg-background
+        ${
+          focusMode
+            ? 'fixed inset-0 z-50 p-0 sm:p-3'
+            : 'mx-auto h-full max-w-[1600px] px-0 sm:px-4 sm:py-4 lg:px-6'
+        }
+      `}
       style={{
         backgroundImage: `url(${lavenderBackground})`,
         backgroundSize: 'cover',
@@ -1251,200 +1278,332 @@ export default function NoteEditor() {
         "
       />
 
-      {/* Header */}
+      {/* Header (hidden in full screen mode) */}
 
-      <div className="
-        relative z-20 flex shrink-0 flex-col
-        items-stretch gap-2
-        border-b border-purple-100/70
-        bg-white/75 px-3 py-2.5 backdrop-blur-xl
-        dark:border-white/10 dark:bg-slate-950/70
-        sm:mb-4 sm:flex-row sm:items-center
-        sm:justify-between sm:gap-3
-        sm:rounded-2xl sm:border
-        sm:px-4 sm:py-3
-        sm:shadow-[0_4px_20px_rgba(100,70,140,0.05)]
-      ">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            onClick={() => navigate('/app/notes')}
-            title="Back to notes"
-            aria-label="Back to notes"
-            className="
-              flex h-9 w-9 shrink-0 items-center justify-center
-              rounded-xl text-slate-500 transition
-              hover:bg-purple-50 hover:text-purple-700
-              dark:text-slate-400 dark:hover:bg-white/10
-              dark:hover:text-white
-            "
-          >
-            <ArrowLeft size={19} />
-          </button>
-
-          <div className="hidden h-7 w-px bg-purple-100 dark:bg-white/10 sm:block" />
-
-          <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-            style={{
-              backgroundColor: `${theme.swatch}18`,
-              color: theme.swatch,
-            }}
-          >
-            <FileText size={17} />
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-1">
-            <span className="max-w-[110px] truncate text-xs font-semibold text-slate-700 dark:text-slate-200 sm:max-w-none sm:text-sm">
-              {theme.name}
-            </span>
-
-            <SaveIndicator
-              state={saveState}
-              lastSavedAt={lastSavedAt}
-            />
-          </div>
-        </div>
-
-        {/* Right Side - Mobile Scrollable Actions */}
-
+      {!focusMode && (
         <div className="
-          -mx-3 w-[calc(100%+1.5rem)] min-w-0
-          overflow-x-auto overscroll-x-contain
-          px-3 pb-1
-          [scrollbar-width:none]
-          [&::-webkit-scrollbar]:hidden
-          sm:mx-0 sm:w-auto sm:overflow-visible
-          sm:px-0 sm:pb-0
+          relative z-20 flex shrink-0 flex-col
+          items-stretch gap-2
+          border-b border-purple-100/70
+          bg-white/75 px-3 py-2.5 backdrop-blur-xl
+          dark:border-white/10 dark:bg-slate-950/70
+          sm:mb-4 sm:flex-row sm:items-center
+          sm:justify-between sm:gap-3
+          sm:rounded-2xl sm:border
+          sm:px-4 sm:py-3
+          sm:shadow-[0_4px_20px_rgba(100,70,140,0.05)]
         ">
-          <div className="
-            flex min-w-max items-center justify-start gap-2
-            sm:min-w-0 sm:justify-end sm:gap-2
-          ">
-            <IconButton
-              icon={RefreshCw}
-              label="Refresh"
-              busyLabel="Refreshing..."
-              doneLabel="Refreshed"
-              onClick={handleRefresh}
-              loading={refreshing}
-              done={refreshFeedback === 'Refreshed'}
-              disabled={anyActionPending || refreshing}
-            />
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/app/notes')}
+              title="Back to notes"
+              aria-label="Back to notes"
+              className="
+                flex h-9 w-9 shrink-0 items-center justify-center
+                rounded-xl text-slate-500 transition
+                hover:bg-purple-50 hover:text-purple-700
+                dark:text-slate-400 dark:hover:bg-white/10
+                dark:hover:text-white
+              "
+            >
+              <ArrowLeft size={19} />
+            </button>
 
-            <IconButton
-              icon={Pin}
-              label="Pin"
-              busyLabel={note?.is_pinned ? 'Unpinning...' : 'Pinning...'}
-              doneLabel={pinFeedbackLabel || 'Pinned'}
-              active={note?.is_pinned}
-              onClick={() => togglePin.mutate()}
-              loading={togglePin.isPending}
-              done={pinFeedback}
-              disabled={anyActionPending || refreshing}
-            />
+            <div className="hidden h-7 w-px bg-purple-100 dark:bg-white/10 sm:block" />
 
-            <IconButton
-              icon={Star}
-              label="Favorite"
-              busyLabel={
-                note?.is_favorite ? 'Removing...' : 'Adding...'
-              }
-              doneLabel={favoriteFeedbackLabel || 'Added'}
-              active={note?.is_favorite}
-              onClick={() => toggleFav.mutate()}
-              loading={toggleFav.isPending}
-              done={favoriteFeedback}
-              disabled={anyActionPending || refreshing}
-            />
-
-            <IconButton
-              icon={Archive}
-              label="Archive"
-              busyLabel="Archiving..."
-              doneLabel="Archived"
-              onClick={() => archive.mutate()}
-              loading={archive.isPending}
-              done={archiveFeedback}
-              disabled={anyActionPending || refreshing}
-            />
-
-            <IconButton
-              icon={Trash2}
-              label="Delete"
-              busyLabel="Deleting..."
-              doneLabel="Deleted"
-              danger
-              onClick={handleDelete}
-              loading={remove.isPending}
-              done={deleteFeedback}
-              disabled={anyActionPending || refreshing}
-            />
-
-            <IconButton
-              icon={Save}
-              label="Save"
-              busyLabel="Saving..."
-              doneLabel="Saved"
-              onClick={handleManualSave}
-              loading={
-                saveFeedback === 'Saving...' ||
-                saveState === 'saving'
-              }
-              done={saveFeedback === 'Saved'}
-              disabled={
-                saveState === 'saving' ||
-                saveFeedback === 'Saving...' ||
-                anyActionPending ||
-                refreshing
-              }
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Note Details */}
-
-      <div className="
-        relative z-10 shrink-0
-        rounded-none border-b border-purple-100/60
-        bg-white/30 px-4 py-4
-        dark:border-white/5 dark:bg-transparent
-        sm:mb-3 sm:rounded-2xl sm:border
-        sm:bg-white/40 sm:px-5 sm:py-4
-        sm:backdrop-blur-sm
-        dark:sm:bg-slate-900/30
-      ">
-        <div className="flex items-center gap-2">
-          <input
-            value={title}
-            onChange={handleTitleChange}
-            onBlur={() => {
-              clearTimeout(saveTimerRef.current);
-              saveNowRef.current?.();
-            }}
-            placeholder="Untitled note"
-            aria-label="Note title"
-            className="
-              min-w-0 flex-1 border-0 bg-transparent p-0
-              text-2xl font-bold tracking-tight
-              text-slate-800 outline-none
-              placeholder:text-slate-300 focus:ring-0
-              dark:text-slate-100 dark:placeholder:text-slate-600
-              sm:text-3xl lg:text-4xl
-            "
-          />
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3">
-          {/* Folder */}
-
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-300">
-              <FolderIcon size={15} />
+            <div
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+              style={{
+                backgroundColor: `${theme.swatch}18`,
+                color: theme.swatch,
+              }}
+            >
+              <FileText size={17} />
             </div>
 
-            <div className="w-[125px] min-w-0 sm:w-[155px]">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              {/* Title (moved to top card) */}
+
+              <input
+                value={title}
+                onChange={handleTitleChange}
+                onBlur={() => {
+                  clearTimeout(saveTimerRef.current);
+                  saveNowRef.current?.();
+                }}
+                placeholder="Untitled note"
+                aria-label="Note title"
+                className="
+                  w-full min-w-0 border-0 bg-transparent p-0
+                  text-lg font-bold tracking-tight
+                  text-slate-800 outline-none
+                  placeholder:text-slate-300 focus:ring-0
+                  dark:text-slate-100 dark:placeholder:text-slate-600
+                  sm:text-2xl
+                "
+              />
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="max-w-[110px] truncate text-xs font-semibold text-slate-700 dark:text-slate-200 sm:max-w-none sm:text-sm">
+                  {theme.name}
+                </span>
+
+                <SaveIndicator
+                  state={saveState}
+                  lastSavedAt={lastSavedAt}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side - Mobile Scrollable Actions */}
+
+          <div className="
+            -mx-3 w-[calc(100%+1.5rem)] min-w-0
+            overflow-x-auto overscroll-x-contain
+            px-3 pb-1
+            [scrollbar-width:none]
+            [&::-webkit-scrollbar]:hidden
+            sm:mx-0 sm:w-auto sm:overflow-visible
+            sm:px-0 sm:pb-0
+          ">
+            <div className="
+              flex min-w-max items-center justify-start gap-2
+              sm:min-w-0 sm:justify-end sm:gap-2
+            ">
+              <IconButton
+                icon={Maximize2}
+                label="Full screen"
+                busyLabel="Full screen"
+                doneLabel="Full screen"
+                onClick={() => setFocusMode(true)}
+              />
+
+              <IconButton
+                icon={PanelRight}
+                label={sidebarOpen ? 'Hide panel' : 'Show panel'}
+                busyLabel="Panel"
+                doneLabel="Panel"
+                active={sidebarOpen}
+                onClick={() => setSidebarOpen((value) => !value)}
+              />
+
+              <IconButton
+                icon={RefreshCw}
+                label="Refresh"
+                busyLabel="Refreshing..."
+                doneLabel="Refreshed"
+                onClick={handleRefresh}
+                loading={refreshing}
+                done={refreshFeedback === 'Refreshed'}
+                disabled={anyActionPending || refreshing}
+              />
+
+              <IconButton
+                icon={Pin}
+                label="Pin"
+                busyLabel={note?.is_pinned ? 'Unpinning...' : 'Pinning...'}
+                doneLabel={pinFeedbackLabel || 'Pinned'}
+                active={note?.is_pinned}
+                onClick={() => togglePin.mutate()}
+                loading={togglePin.isPending}
+                done={pinFeedback}
+                disabled={anyActionPending || refreshing}
+              />
+
+              <IconButton
+                icon={Star}
+                label="Favorite"
+                busyLabel={
+                  note?.is_favorite ? 'Removing...' : 'Adding...'
+                }
+                doneLabel={favoriteFeedbackLabel || 'Added'}
+                active={note?.is_favorite}
+                onClick={() => toggleFav.mutate()}
+                loading={toggleFav.isPending}
+                done={favoriteFeedback}
+                disabled={anyActionPending || refreshing}
+              />
+
+              <IconButton
+                icon={Archive}
+                label="Archive"
+                busyLabel="Archiving..."
+                doneLabel="Archived"
+                onClick={() => archive.mutate()}
+                loading={archive.isPending}
+                done={archiveFeedback}
+                disabled={anyActionPending || refreshing}
+              />
+
+              <IconButton
+                icon={Trash2}
+                label="Delete"
+                busyLabel="Deleting..."
+                doneLabel="Deleted"
+                danger
+                onClick={handleDelete}
+                loading={remove.isPending}
+                done={deleteFeedback}
+                disabled={anyActionPending || refreshing}
+              />
+
+              <IconButton
+                icon={Save}
+                label="Save"
+                busyLabel="Saving..."
+                doneLabel="Saved"
+                onClick={handleManualSave}
+                loading={
+                  saveFeedback === 'Saving...' ||
+                  saveState === 'saving'
+                }
+                done={saveFeedback === 'Saved'}
+                disabled={
+                  saveState === 'saving' ||
+                  saveFeedback === 'Saving...' ||
+                  anyActionPending ||
+                  refreshing
+                }
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Body: writing area + sticky sidebar */}
+
+      <div className="relative flex min-h-0 flex-1 gap-4">
+        {/* Editor Workspace (big writing area) */}
+
+        <div className="
+          relative z-0 flex min-h-0 min-w-0 flex-1 flex-col
+          overflow-hidden
+          border-y border-purple-100/70
+          bg-white/80
+          dark:border-white/10 dark:bg-slate-950/70
+          sm:rounded-2xl sm:border
+          sm:shadow-[0_8px_30px_rgba(100,70,140,0.06)]
+        ">
+          <div
+            className="h-[3px] w-full shrink-0 opacity-80"
+            style={{
+              background: `linear-gradient(90deg, transparent, ${theme.swatch}, transparent)`,
+            }}
+          />
+
+          <div className="
+            min-h-0 flex-1
+            overflow-x-hidden overflow-y-auto
+            overscroll-contain
+          ">
+            <EditorContent
+              editor={editor}
+              className="min-h-full"
+            />
+          </div>
+
+          {/* Exit full screen */}
+
+          {focusMode && (
+            <button
+              type="button"
+              onClick={() => setFocusMode(false)}
+              title="Exit full screen (Esc)"
+              aria-label="Exit full screen"
+              className="
+                absolute right-4 top-4 z-10 inline-flex h-9 items-center gap-1.5
+                rounded-xl border border-purple-100 bg-white/90 px-3
+                text-xs font-semibold text-slate-600 shadow-sm backdrop-blur
+                transition hover:bg-purple-50
+                dark:border-white/10 dark:bg-slate-900/90 dark:text-slate-300
+              "
+            >
+              <Minimize2 size={14} />
+              Exit full screen
+            </button>
+          )}
+        </div>
+
+        {/* Mobile backdrop */}
+
+        {showSidebar && (
+          <button
+            type="button"
+            aria-label="Close panel"
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 z-30 bg-slate-900/40 lg:hidden"
+          />
+        )}
+
+        {/* Sticky Sidebar: Folder, Tags, Editor toolbar */}
+
+        {showSidebar && (
+          <aside className="
+            fixed inset-y-0 right-0 z-40 w-[320px] max-w-[88vw]
+            overflow-y-auto overscroll-contain
+            border-l border-purple-100/70 bg-white/95 shadow-xl backdrop-blur-xl
+            dark:border-white/10 dark:bg-slate-950/95
+            lg:sticky lg:top-0 lg:z-10 lg:h-full lg:max-h-full
+            lg:w-[320px] lg:shrink-0 lg:self-start
+            lg:rounded-2xl lg:border lg:bg-white/80
+            lg:shadow-[0_4px_20px_rgba(100,70,140,0.05)]
+            dark:lg:bg-slate-900/70
+          ">
+            <div className="flex items-center justify-between border-b border-purple-100/60 px-4 py-3 dark:border-white/10 lg:hidden">
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Note panel
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(false)}
+                aria-label="Close panel"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-purple-50 dark:hover:bg-white/10"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Editor toolbar */}
+
+            <div className="border-b border-purple-100/60 px-3 py-4 dark:border-white/10">
+              <p className="mb-2 px-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                Editor
+              </p>
+
+              <div className="
+                rounded-xl border border-purple-100/70
+                bg-white/80 p-1 shadow-sm
+                dark:border-white/10 dark:bg-slate-900/70
+                [&>*]:flex-wrap [&>*]:!overflow-visible
+                [&_*]:max-w-full
+              ">
+                <EditorToolbar editor={editor} />
+              </div>
+            </div>
+
+            {/* Folder */}
+
+            <div className="border-b border-purple-100/60 px-4 py-4 dark:border-white/10">
+              <div className="mb-2 flex items-center gap-2">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-300">
+                  <FolderIcon size={15} />
+                </div>
+
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  Folder
+                </span>
+
+                {folderFeedback && (
+                  <span className="ml-auto flex items-center gap-1 text-xs text-emerald-600">
+                    <Check size={12} />
+                    Updated
+                  </span>
+                )}
+              </div>
+
               <Select
                 value={folderId}
                 onChange={handleFolderChange}
@@ -1459,213 +1618,154 @@ export default function NoteEditor() {
                   </option>
                 ))}
               </Select>
-            </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setFolderName('');
-                setFolderDialogOpen(true);
-              }}
-              className="
-                flex h-8 shrink-0 items-center gap-1.5
-                rounded-lg border border-purple-100
-                bg-white/70 px-2.5
-                text-xs font-medium text-purple-700
-                transition-all hover:border-purple-300
-                hover:bg-purple-50
-                dark:border-white/10 dark:bg-white/5
-                dark:text-purple-300 dark:hover:bg-white/10
-              "
-            >
-              <Plus size={13} />
-              <span className="hidden sm:inline">New folder</span>
-              <span className="sm:hidden">Add</span>
-            </button>
-
-            {folderFeedback && (
-              <span className="hidden items-center gap-1 text-xs text-emerald-600 sm:flex">
-                <Check size={12} />
-                Updated
-              </span>
-            )}
-          </div>
-
-          <div className="hidden h-6 w-px bg-purple-100 dark:bg-white/10 sm:block" />
-
-          {/* Tags */}
-
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-50 text-pink-600 dark:bg-pink-500/10 dark:text-pink-300">
-              <TagIcon size={14} />
-            </div>
-
-            {(note?.tags || []).map((tag) => (
-              <span
-                key={tag.id}
+              <button
+                type="button"
+                onClick={() => {
+                  setFolderName('');
+                  setFolderDialogOpen(true);
+                }}
                 className="
-                  inline-flex items-center gap-1.5
-                  rounded-full border border-purple-100
-                  bg-white/80 px-2.5 py-1
-                  text-[11px] font-medium text-purple-700
-                  dark:border-purple-400/20
-                  dark:bg-purple-500/10 dark:text-purple-300
+                  mt-2 flex h-8 items-center gap-1.5
+                  rounded-lg border border-purple-100
+                  bg-white/70 px-2.5
+                  text-xs font-medium text-purple-700
+                  transition-all hover:border-purple-300
+                  hover:bg-purple-50
+                  dark:border-white/10 dark:bg-white/5
+                  dark:text-purple-300 dark:hover:bg-white/10
                 "
               >
-                {tag.name}
+                <Plus size={13} />
+                New folder
+              </button>
+            </div>
+
+            {/* Tags */}
+
+            <div className="px-4 py-4">
+              <div className="mb-2 flex items-center gap-2">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-50 text-pink-600 dark:bg-pink-500/10 dark:text-pink-300">
+                  <TagIcon size={14} />
+                </div>
+
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  Tags
+                </span>
+
+                {tagFeedback && (
+                  <span className="ml-auto flex items-center gap-1 text-xs text-emerald-600">
+                    <Check size={12} />
+                    Updated
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {(note?.tags || []).map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="
+                      inline-flex items-center gap-1.5
+                      rounded-full border border-purple-100
+                      bg-white/80 px-2.5 py-1
+                      text-[11px] font-medium text-purple-700
+                      dark:border-purple-400/20
+                      dark:bg-purple-500/10 dark:text-purple-300
+                    "
+                  >
+                    {tag.name}
+
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag.id)}
+                      aria-label={`Remove ${tag.name}`}
+                      disabled={setTagsMutation.isPending}
+                      className="rounded-full p-0.5 transition hover:bg-purple-100 hover:text-red-500 disabled:opacity-50 dark:hover:bg-white/10"
+                    >
+                      <X size={11} />
+                    </button>
+                  </span>
+                ))}
 
                 <button
                   type="button"
-                  onClick={() => removeTag(tag.id)}
-                  aria-label={`Remove ${tag.name}`}
-                  disabled={setTagsMutation.isPending}
-                  className="rounded-full p-0.5 transition hover:bg-purple-100 hover:text-red-500 disabled:opacity-50 dark:hover:bg-white/10"
+                  onClick={() => setTagPickerOpen(true)}
+                  className="
+                    inline-flex h-7 items-center gap-1
+                    rounded-full border border-dashed
+                    border-purple-200 px-3
+                    text-[11px] font-semibold text-purple-600
+                    transition-all hover:border-purple-400
+                    hover:bg-purple-50
+                    dark:border-purple-400/30
+                    dark:text-purple-300 dark:hover:bg-purple-500/10
+                  "
                 >
-                  <X size={11} />
+                  <Plus size={12} />
+                  Add tag
                 </button>
-              </span>
-            ))}
-
-            <button
-              type="button"
-              onClick={() => setTagPickerOpen(true)}
-              className="
-                inline-flex h-7 items-center gap-1
-                rounded-full border border-dashed
-                border-purple-200 px-3
-                text-[11px] font-semibold text-purple-600
-                transition-all hover:border-purple-400
-                hover:bg-purple-50
-                dark:border-purple-400/30
-                dark:text-purple-300 dark:hover:bg-purple-500/10
-              "
-            >
-              <Plus size={12} />
-              Add tag
-            </button>
-
-            {tagFeedback && (
-              <span className="flex items-center gap-1 text-xs text-emerald-600">
-                <Check size={12} />
-                Updated
-              </span>
-            )}
-          </div>
-        </div>
+              </div>
+            </div>
+          </aside>
+        )}
       </div>
 
-      {/* Desktop Toolbar */}
+      {/* Footer (hidden in full screen mode) */}
 
-      <div className="
-        relative z-10 hidden shrink-0
-        overflow-x-auto rounded-xl
-        border border-purple-100/70
-        bg-white/80 shadow-sm backdrop-blur-xl
-        dark:border-white/10 dark:bg-slate-900/70
-        sm:mb-3 sm:block
-      ">
-        <EditorToolbar editor={editor} />
-      </div>
-
-      {/* Mobile Toolbar */}
-
-      {mobileToolbarOpen && (
+      {!focusMode && (
         <div className="
-          relative z-10 shrink-0 overflow-x-auto
-          border-y border-purple-100
-          bg-white/95 px-2 py-2 shadow-sm
-          dark:border-white/10 dark:bg-slate-900
-          sm:hidden
+          z-10 flex shrink-0 items-center
+          justify-between gap-3
+          border-t border-purple-100/70
+          bg-white/80 px-4 py-2.5
+          dark:border-white/10 dark:bg-slate-950/70
+          sm:mt-3 sm:rounded-xl sm:border
+          sm:px-4 sm:py-2
+          sm:backdrop-blur-xl
         ">
-          <div className="min-w-max">
-            <EditorToolbar editor={editor} />
+          <div className="
+            flex items-center gap-3
+            text-[11px] font-medium text-slate-500
+            dark:text-slate-400 sm:text-xs
+          ">
+            <span className="inline-flex items-center gap-1.5">
+              <FileText size={12} />
+              {wordCount} words
+            </span>
+
+            <span className="hidden h-3 w-px bg-slate-200 dark:bg-white/10 sm:block" />
+
+            <span className="hidden sm:inline">
+              {characterCount} characters
+            </span>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setSidebarOpen((value) => !value)}
+            className="
+              flex h-8 shrink-0 items-center gap-1.5
+              rounded-lg border border-purple-200
+              bg-purple-50 px-3
+              text-xs font-semibold text-purple-700
+              transition hover:bg-purple-100
+              dark:border-purple-500/20
+              dark:bg-purple-500/10
+              dark:text-purple-300
+              lg:hidden
+            "
+          >
+            <Pencil size={13} />
+            {sidebarOpen ? 'Done' : 'Edit'}
+          </button>
+
+          <span className="hidden items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 sm:flex">
+            <Clock3 size={12} />
+            {theme.name}
+          </span>
         </div>
       )}
-
-      {/* Editor Workspace */}
-
-      <div className="
-        relative z-0 flex min-h-0 flex-1 flex-col
-        overflow-hidden
-        border-y border-purple-100/70
-        bg-white/80
-        dark:border-white/10 dark:bg-slate-950/70
-        sm:rounded-2xl sm:border
-        sm:shadow-[0_8px_30px_rgba(100,70,140,0.06)]
-      ">
-        <div
-          className="h-[3px] w-full shrink-0 opacity-80"
-          style={{
-            background: `linear-gradient(90deg, transparent, ${theme.swatch}, transparent)`,
-          }}
-        />
-
-        <div className="
-          min-h-0 flex-1
-          overflow-x-hidden overflow-y-auto
-          overscroll-contain
-        ">
-          <EditorContent
-            editor={editor}
-            className="min-h-full"
-          />
-        </div>
-      </div>
-
-      {/* Footer */}
-
-      <div className="
-        z-10 flex shrink-0 items-center
-        justify-between gap-3
-        border-t border-purple-100/70
-        bg-white/80 px-4 py-2.5
-        dark:border-white/10 dark:bg-slate-950/70
-        sm:mt-3 sm:rounded-xl sm:border
-        sm:px-4 sm:py-2
-        sm:backdrop-blur-xl
-      ">
-        <div className="
-          flex items-center gap-3
-          text-[11px] font-medium text-slate-500
-          dark:text-slate-400 sm:text-xs
-        ">
-          <span className="inline-flex items-center gap-1.5">
-            <FileText size={12} />
-            {wordCount} words
-          </span>
-
-          <span className="hidden h-3 w-px bg-slate-200 dark:bg-white/10 sm:block" />
-
-          <span className="hidden sm:inline">
-            {characterCount} characters
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setMobileToolbarOpen((value) => !value)}
-          className="
-            flex h-8 shrink-0 items-center gap-1.5
-            rounded-lg border border-purple-200
-            bg-purple-50 px-3
-            text-xs font-semibold text-purple-700
-            transition hover:bg-purple-100
-            dark:border-purple-500/20
-            dark:bg-purple-500/10
-            dark:text-purple-300
-            sm:hidden
-          "
-        >
-          <Pencil size={13} />
-          {mobileToolbarOpen ? 'Done' : 'Edit'}
-        </button>
-
-        <span className="hidden items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 sm:flex">
-          <Clock3 size={12} />
-          {theme.name}
-        </span>
-      </div>
 
       {/* Create Folder Dialog */}
 
