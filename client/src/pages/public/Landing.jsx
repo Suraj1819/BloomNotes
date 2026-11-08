@@ -7,7 +7,7 @@ import { useTheme } from '../../contexts/ThemeContext.jsx';
 import { ArrowRight, NotebookPen, ShieldCheck, Sparkles, CalendarClock, FolderTree, Lock, Sun, Moon } from 'lucide-react';
 
 // 👇 background image import
-import landingBg from '../../../assets/background/lavender.png';
+import landingBg from '../../../assets/background/favv1.png';
 
 export default function Landing() {
   const { session } = useAuth();

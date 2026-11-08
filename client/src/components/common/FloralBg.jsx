@@ -1,6 +1,6 @@
 // src/components/common/FloralBg.jsx
 // Decorative floral background — uses your lavender.png + soft SVG accents.
-import lavenderBg from '../../../assets/background/lavender.png';
+import lavenderBg from '../../../assets/background/favv.png';
 
 export function FloralBg() {
   return (

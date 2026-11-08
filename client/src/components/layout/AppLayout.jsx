@@ -7,7 +7,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from '../navigation/Sidebar.jsx';
 import { TopBar } from '../navigation/TopBar.jsx';
 
-import lavenderBg from '../../../assets/background/lavender.png';
+import lavenderBg from '../../../assets/background/favv1.png';
 
 export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
