@@ -1,61 +1,92 @@
-
 import { Node, mergeAttributes } from '@tiptap/core';
+
+const DEFAULT_SHAPE_FILL = 'transparent';
+const DEFAULT_SHAPE_BORDER = '#8b5cf6';
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(Number(value) || min, max));
+}
+
+function getShapeStyle(attrs = {}) {
+  const shape = attrs.shape || 'rectangle';
+  const width = clamp(attrs.width ?? 180, 30, 1400);
+  const height = clamp(attrs.height ?? 120, 4, 1400);
+  const fill = attrs.backgroundColor || DEFAULT_SHAPE_FILL;
+  const borderColor = attrs.borderColor || DEFAULT_SHAPE_BORDER;
+  const borderWidth = clamp(attrs.borderWidth ?? 2, 0, 24);
+  const radius = attrs.borderRadius || '12px';
+
+  const style = {
+    width: `${width}px`,
+    height: `${height}px`,
+    boxSizing: 'border-box',
+    backgroundColor: shape === 'line' ? borderColor : fill,
+    border: `${borderWidth}px solid ${borderColor}`,
+    borderRadius:
+      shape === 'circle' || shape === 'ellipse'
+        ? '50%'
+        : shape === 'line'
+          ? '999px'
+          : radius,
+    transform: `rotate(${Number(attrs.rotation) || 0}deg)`,
+    transformOrigin: 'center',
+    flex: 'none',
+  };
+
+  if (shape === 'square') {
+    style.width = `${Math.min(width, height)}px`;
+    style.height = `${Math.min(width, height)}px`;
+  }
+
+  if (shape === 'circle') {
+    const diameter = Math.min(width, height);
+    style.width = `${diameter}px`;
+    style.height = `${diameter}px`;
+  }
+
+  if (shape === 'triangle') {
+    style.border = 'none';
+    style.backgroundColor = fill;
+    style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)';
+    style.filter = `drop-shadow(0 0 1px ${borderColor}) drop-shadow(0 0 1px ${borderColor})`;
+  }
+
+  if (shape === 'arrow') {
+    style.border = 'none';
+    style.backgroundColor = fill;
+    style.clipPath =
+      'polygon(0 30%, 65% 30%, 65% 0, 100% 50%, 65% 100%, 65% 70%, 0 70%)';
+    style.filter = `drop-shadow(0 0 1px ${borderColor}) drop-shadow(0 0 1px ${borderColor})`;
+  }
+
+  if (shape === 'line') {
+    style.height = `${Math.max(2, height)}px`;
+    style.border = 'none';
+    style.backgroundColor = borderColor;
+  }
+
+  return style;
+}
 
 function updateShapeAttributes(view, getPos, attributes) {
   try {
     const position = getPos();
 
-    if (typeof position !== 'number') {
-      return;
-    }
+    if (typeof position !== 'number') return;
 
     const currentNode = view.state.doc.nodeAt(position);
 
-    if (!currentNode) {
-      return;
-    }
+    if (!currentNode) return;
 
-    const transaction = view.state.tr.setNodeMarkup(
-      position,
-      undefined,
-      {
+    view.dispatch(
+      view.state.tr.setNodeMarkup(position, undefined, {
         ...currentNode.attrs,
         ...attributes,
-      }
+      })
     );
-
-    view.dispatch(transaction);
   } catch (error) {
     console.warn('[BloomNotes] Shape update failed:', error);
   }
-}
-
-function getShapeStyle(attrs) {
-  const shape = attrs.shape || 'rectangle';
-
-  const style = {
-    width: `${attrs.width || 180}px`,
-    height: `${attrs.height || 120}px`,
-    backgroundColor: attrs.backgroundColor || '#ede9fe',
-    border: `${attrs.borderWidth ?? 2}px solid ${
-      attrs.borderColor || '#8b5cf6'
-    }`,
-    borderRadius:
-      shape === 'circle'
-        ? '50%'
-        : shape === 'line'
-          ? '2px'
-          : attrs.borderRadius || '12px',
-    transform: `rotate(${attrs.rotation || 0}deg)`,
-    boxSizing: 'border-box',
-  };
-
-  if (shape === 'line') {
-    style.height = `${attrs.height || 4}px`;
-    style.border = 'none';
-  }
-
-  return style;
 }
 
 export const ShapeExtension = Node.create({
@@ -84,11 +115,11 @@ export const ShapeExtension = Node.create({
       },
 
       backgroundColor: {
-        default: '#ede9fe',
+        default: DEFAULT_SHAPE_FILL,
       },
 
       borderColor: {
-        default: '#8b5cf6',
+        default: DEFAULT_SHAPE_BORDER,
       },
 
       borderWidth: {
@@ -110,25 +141,41 @@ export const ShapeExtension = Node.create({
       {
         tag: 'div[data-type="bn-shape"]',
 
-        getAttrs: (element) => {
-          const shapeElement = element;
+        getAttrs: (element) => ({
+          shape: element.getAttribute('data-shape') || 'rectangle',
 
-          return {
-            shape: shapeElement.getAttribute('data-shape') || 'rectangle',
-            width: Number(shapeElement.getAttribute('data-width')) || 180,
-            height: Number(shapeElement.getAttribute('data-height')) || 120,
-            backgroundColor:
-              shapeElement.getAttribute('data-background') || '#ede9fe',
-            borderColor:
-              shapeElement.getAttribute('data-border-color') || '#8b5cf6',
-            borderWidth:
-              Number(shapeElement.getAttribute('data-border-width')) || 2,
-            borderRadius:
-              shapeElement.getAttribute('data-border-radius') || '12px',
-            rotation:
-              Number(shapeElement.getAttribute('data-rotation')) || 0,
-          };
-        },
+          width: clamp(
+            element.getAttribute('data-width') || 180,
+            30,
+            1400
+          ),
+
+          height: clamp(
+            element.getAttribute('data-height') || 120,
+            4,
+            1400
+          ),
+
+          backgroundColor:
+            element.getAttribute('data-background') ||
+            DEFAULT_SHAPE_FILL,
+
+          borderColor:
+            element.getAttribute('data-border-color') ||
+            DEFAULT_SHAPE_BORDER,
+
+          borderWidth: clamp(
+            element.getAttribute('data-border-width') || 2,
+            0,
+            24
+          ),
+
+          borderRadius:
+            element.getAttribute('data-border-radius') || '12px',
+
+          rotation:
+            Number(element.getAttribute('data-rotation')) || 0,
+        }),
       },
     ];
   },
@@ -146,53 +193,53 @@ export const ShapeExtension = Node.create({
       ...attributes
     } = HTMLAttributes;
 
-    const attrs = {
-      'data-type': 'bn-shape',
-      'data-shape': shape,
-      'data-width': width,
-      'data-height': height,
-      'data-background': backgroundColor,
-      'data-border-color': borderColor,
-      'data-border-width': borderWidth,
-      'data-border-radius': borderRadius,
-      'data-rotation': rotation,
-      style: Object.entries(
-        getShapeStyle({
-          shape,
-          width,
-          height,
-          backgroundColor,
-          borderColor,
-          borderWidth,
-          borderRadius,
-          rotation,
-        })
-      )
-        .map(([key, value]) => {
-          const cssKey = key.replace(
-            /[A-Z]/g,
-            (letter) => `-${letter.toLowerCase()}`
-          );
+    const style = getShapeStyle({
+      shape,
+      width,
+      height,
+      backgroundColor,
+      borderColor,
+      borderWidth,
+      borderRadius,
+      rotation,
+    });
 
-          return `${cssKey}: ${value}`;
-        })
-        .join('; '),
-    };
+    const cssText = Object.entries(style)
+      .map(([key, value]) => {
+        const cssKey = key.replace(
+          /[A-Z]/g,
+          (letter) => `-${letter.toLowerCase()}`
+        );
+
+        return `${cssKey}: ${value}`;
+      })
+      .join('; ');
 
     return [
       'div',
-      mergeAttributes(attributes, attrs),
+      mergeAttributes(attributes, {
+        'data-type': 'bn-shape',
+        'data-shape': shape,
+        'data-width': width,
+        'data-height': height,
+        'data-background': backgroundColor,
+        'data-border-color': borderColor,
+        'data-border-width': borderWidth,
+        'data-border-radius': borderRadius,
+        'data-rotation': rotation,
+        style: cssText,
+      }),
     ];
   },
 
   addNodeView() {
-    const thisNodeType = this.type;
+    const nodeType = this.type;
 
     return ({ node, getPos, view }) => {
-      const document = view.dom.ownerDocument;
+      const doc = view.dom.ownerDocument;
+      const win = doc.defaultView;
 
-      // Outer draggable wrapper.
-      const wrapper = document.createElement('div');
+      const wrapper = doc.createElement('div');
 
       wrapper.className = 'bn-shape-node';
       wrapper.contentEditable = 'false';
@@ -200,28 +247,28 @@ export const ShapeExtension = Node.create({
 
       Object.assign(wrapper.style, {
         position: 'relative',
-        display: 'table',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         maxWidth: '100%',
         margin: '20px auto',
         padding: '10px',
+        verticalAlign: 'middle',
         cursor: 'move',
         userSelect: 'none',
+        lineHeight: 'normal',
       });
 
-      // Actual shape.
-      const shapeElement = document.createElement('div');
+      const shapeElement = doc.createElement('div');
 
       shapeElement.className = 'bn-shape-element';
 
-      Object.assign(shapeElement.style, {
-        ...getShapeStyle(node.attrs),
-        display: 'block',
-        position: 'relative',
-        cursor: 'move',
-      });
+      Object.assign(
+        shapeElement.style,
+        getShapeStyle(node.attrs)
+      );
 
-      // Resize handle.
-      const resizeHandle = document.createElement('button');
+      const resizeHandle = doc.createElement('button');
 
       resizeHandle.type = 'button';
       resizeHandle.className = 'bn-shape-resize-handle';
@@ -230,13 +277,14 @@ export const ShapeExtension = Node.create({
 
       Object.assign(resizeHandle.style, {
         position: 'absolute',
-        right: '-7px',
-        bottom: '-7px',
+        right: '1px',
+        bottom: '1px',
         width: '15px',
         height: '15px',
         border: '2px solid white',
         borderRadius: '50%',
         background: '#8b5cf6',
+        boxShadow: '0 1px 4px rgba(0,0,0,.25)',
         cursor: 'nwse-resize',
         padding: '0',
         zIndex: '5',
@@ -250,60 +298,73 @@ export const ShapeExtension = Node.create({
       let startWidth = 0;
       let startHeight = 0;
 
-      const handlePointerMove = (event) => {
-        if (!resizing) {
-          return;
-        }
+      const removeListeners = () => {
+        win?.removeEventListener(
+          'pointermove',
+          onPointerMove
+        );
 
-        const deltaX = event.clientX - startX;
-        const deltaY = event.clientY - startY;
+        win?.removeEventListener(
+          'pointerup',
+          onPointerUp
+        );
 
-        const nextWidth = Math.max(
+        win?.removeEventListener(
+          'pointercancel',
+          onPointerUp
+        );
+      };
+
+      const onPointerMove = (event) => {
+        if (!resizing) return;
+
+        const shapeName = node.attrs.shape || 'rectangle';
+
+        let nextWidth = clamp(
+          startWidth + event.clientX - startX,
           30,
-          Math.min(startWidth + deltaX, 1000)
+          1400
         );
 
-        const nextHeight = Math.max(
+        let nextHeight = clamp(
+          startHeight + event.clientY - startY,
           4,
-          Math.min(startHeight + deltaY, 1000)
+          1400
         );
+
+        if (
+          shapeName === 'square' ||
+          shapeName === 'circle'
+        ) {
+          const size = Math.max(
+            30,
+            Math.min(nextWidth, nextHeight)
+          );
+
+          nextWidth = size;
+          nextHeight = size;
+        }
 
         shapeElement.style.width = `${nextWidth}px`;
         shapeElement.style.height = `${nextHeight}px`;
       };
 
-      const handlePointerUp = () => {
-        if (!resizing) {
-          return;
-        }
+      const onPointerUp = () => {
+        if (!resizing) return;
 
         resizing = false;
 
-        const finalWidth = Math.round(
-          shapeElement.getBoundingClientRect().width
-        );
-
-        const finalHeight = Math.round(
-          shapeElement.getBoundingClientRect().height
-        );
+        const rect = shapeElement.getBoundingClientRect();
 
         updateShapeAttributes(view, getPos, {
-          width: finalWidth,
-          height: finalHeight,
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
         });
 
-        document.defaultView?.removeEventListener(
-          'pointermove',
-          handlePointerMove
-        );
-
-        document.defaultView?.removeEventListener(
-          'pointerup',
-          handlePointerUp
-        );
+        removeListeners();
       };
 
-      const handlePointerDown = (event) => {
+      const onPointerDown = (event) => {
         event.preventDefault();
         event.stopPropagation();
 
@@ -312,32 +373,41 @@ export const ShapeExtension = Node.create({
         startX = event.clientX;
         startY = event.clientY;
 
-        startWidth = shapeElement.getBoundingClientRect().width;
-        startHeight = shapeElement.getBoundingClientRect().height;
+        const rect = shapeElement.getBoundingClientRect();
 
-        document.defaultView?.addEventListener(
+        startWidth = rect.width;
+        startHeight = rect.height;
+
+        win?.addEventListener(
           'pointermove',
-          handlePointerMove
+          onPointerMove
         );
 
-        document.defaultView?.addEventListener(
+        win?.addEventListener(
           'pointerup',
-          handlePointerUp
+          onPointerUp
+        );
+
+        win?.addEventListener(
+          'pointercancel',
+          onPointerUp
         );
       };
 
       resizeHandle.addEventListener(
         'pointerdown',
-        handlePointerDown
+        onPointerDown
       );
 
       return {
         dom: wrapper,
 
         update(updatedNode) {
-          if (updatedNode.type !== thisNodeType) {
+          if (updatedNode.type !== nodeType) {
             return false;
           }
+
+          node = updatedNode;
 
           Object.assign(
             shapeElement.style,
@@ -348,11 +418,15 @@ export const ShapeExtension = Node.create({
         },
 
         selectNode() {
-          wrapper.classList.add('ProseMirror-selectednode');
+          wrapper.classList.add(
+            'ProseMirror-selectednode'
+          );
         },
 
         deselectNode() {
-          wrapper.classList.remove('ProseMirror-selectednode');
+          wrapper.classList.remove(
+            'ProseMirror-selectednode'
+          );
         },
 
         stopEvent(event) {
@@ -365,19 +439,11 @@ export const ShapeExtension = Node.create({
         destroy() {
           resizing = false;
 
-          document.defaultView?.removeEventListener(
-            'pointermove',
-            handlePointerMove
-          );
-
-          document.defaultView?.removeEventListener(
-            'pointerup',
-            handlePointerUp
-          );
+          removeListeners();
 
           resizeHandle.removeEventListener(
             'pointerdown',
-            handlePointerDown
+            onPointerDown
           );
         },
       };

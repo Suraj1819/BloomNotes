@@ -29,14 +29,11 @@ import {
   RemoveFormatting,
   Image as ImageIcon,
   Table as TableIcon,
-  Shapes,
   Highlighter,
   Palette,
-  Type,
   Plus,
   Square,
   Circle,
-  Minus as LineIcon,
 } from 'lucide-react';
 
 import { cn } from '../../lib/utils.js';
@@ -111,9 +108,7 @@ function TBtn({
 // -----------------------------------------------------------------------------
 
 function ToolbarDivider() {
-  return (
-    <span className="mx-1 h-6 w-px shrink-0 bg-border" />
-  );
+  return <span className="mx-1 h-6 w-px shrink-0 bg-border" />;
 }
 
 // -----------------------------------------------------------------------------
@@ -162,12 +157,7 @@ function ToolbarSelect({
 // Color Control
 // -----------------------------------------------------------------------------
 
-function ColorControl({
-  icon,
-  title,
-  value,
-  onChange,
-}) {
+function ColorControl({ icon, title, value, onChange }) {
   return (
     <label
       title={title}
@@ -210,9 +200,7 @@ export function EditorToolbar({ editor }) {
   const [fontFamily, setFontFamily] = useState('Calibri');
   const [fontSize, setFontSize] = useState('16px');
 
-  if (!editor) {
-    return null;
-  }
+  if (!editor) return null;
 
   // ---------------------------------------------------------------------------
   // Link
@@ -234,9 +222,7 @@ export function EditorToolbar({ editor }) {
           ? url
           : `https://${url}`;
 
-      editor.chain().focus().setLink({
-        href: normalized,
-      }).run();
+      editor.chain().focus().setLink({ href: normalized }).run();
     }
 
     setLinkOpen(false);
@@ -255,13 +241,9 @@ export function EditorToolbar({ editor }) {
 
   const handleFontFamily = (event) => {
     const value = event.target.value;
-
     setFontFamily(value);
 
-    editor.chain()
-      .focus()
-      .setFontFamily(value)
-      .run();
+    editor.chain().focus().setFontFamily(value).run();
   };
 
   // ---------------------------------------------------------------------------
@@ -270,14 +252,11 @@ export function EditorToolbar({ editor }) {
 
   const handleFontSize = (event) => {
     const value = event.target.value;
-
     setFontSize(value);
 
     editor.chain()
       .focus()
-      .setMark('textStyle', {
-        fontSize: value,
-      })
+      .setMark('textStyle', { fontSize: value })
       .run();
   };
 
@@ -286,11 +265,9 @@ export function EditorToolbar({ editor }) {
   // ---------------------------------------------------------------------------
 
   const handleTextColor = (event) => {
-    const value = event.target.value;
-
     editor.chain()
       .focus()
-      .setColor(value)
+      .setColor(event.target.value)
       .run();
   };
 
@@ -299,13 +276,9 @@ export function EditorToolbar({ editor }) {
   // ---------------------------------------------------------------------------
 
   const handleHighlight = (event) => {
-    const value = event.target.value;
-
     editor.chain()
       .focus()
-      .toggleHighlight({
-        color: value,
-      })
+      .toggleHighlight({ color: event.target.value })
       .run();
   };
 
@@ -322,11 +295,12 @@ export function EditorToolbar({ editor }) {
   const insertImage = () => {
     const src = imageUrl.trim();
 
-    if (!src) {
-      return;
-    }
+    if (!src) return;
 
-    if (!/^https?:\/\//i.test(src) && !src.startsWith('data:image/')) {
+    if (
+      !/^https?:\/\//i.test(src) &&
+      !src.startsWith('data:image/')
+    ) {
       return;
     }
 
@@ -363,6 +337,18 @@ export function EditorToolbar({ editor }) {
       .run();
   };
 
+  const addTableRow = () => {
+    editor.chain().focus().addRowAfter().run();
+  };
+
+  const addTableColumn = () => {
+    editor.chain().focus().addColumnAfter().run();
+  };
+
+  const deleteTable = () => {
+    editor.chain().focus().deleteTable().run();
+  };
+
   // ---------------------------------------------------------------------------
   // Shapes
   // ---------------------------------------------------------------------------
@@ -374,10 +360,9 @@ export function EditorToolbar({ editor }) {
         type: 'shape',
         attrs: {
           shape,
-          width: 180,
+          width: shape === 'square' || shape === 'circle' ? 120 : 180,
           height: shape === 'line' ? 4 : 120,
-          backgroundColor:
-            shape === 'line' ? '#8b5cf6' : '#ede9fe',
+          backgroundColor: '#ede9fe',
           borderColor: '#8b5cf6',
           borderWidth: 2,
           borderRadius: shape === 'circle' ? '50%' : '12px',
@@ -385,22 +370,6 @@ export function EditorToolbar({ editor }) {
         },
       })
       .run();
-  };
-
-  // ---------------------------------------------------------------------------
-  // Table Actions
-  // ---------------------------------------------------------------------------
-
-  const addTableRow = () => {
-    editor.chain().focus().addRowAfter().run();
-  };
-
-  const addTableColumn = () => {
-    editor.chain().focus().addColumnAfter().run();
-  };
-
-  const deleteTable = () => {
-    editor.chain().focus().deleteTable().run();
   };
 
   // ---------------------------------------------------------------------------
@@ -422,12 +391,9 @@ export function EditorToolbar({ editor }) {
   return (
     <>
       <div className="sticky top-0 z-20 mx-4 rounded-xl border border-border bg-bg-secondary shadow-sm">
-
-        {/* Toolbar Scroll Area */}
-
         <div className="flex flex-wrap items-center gap-1 p-2">
 
-          {/* Font Family */}
+          {/* Font Family and Size */}
 
           <ToolbarGroup>
             <ToolbarSelect
@@ -437,10 +403,7 @@ export function EditorToolbar({ editor }) {
               className="w-[125px]"
             >
               {FONT_FAMILIES.map((font) => (
-                <option
-                  key={font.value}
-                  value={font.value}
-                >
+                <option key={font.value} value={font.value}>
                   {font.label}
                 </option>
               ))}
@@ -643,17 +606,11 @@ export function EditorToolbar({ editor }) {
           {/* Insert Elements */}
 
           <ToolbarGroup>
-            <TBtn
-              title="Insert image"
-              onClick={openImageDialog}
-            >
+            <TBtn title="Insert image" onClick={openImageDialog}>
               <ImageIcon size={16} />
             </TBtn>
 
-            <TBtn
-              title="Insert table"
-              onClick={insertTable}
-            >
+            <TBtn title="Insert table" onClick={insertTable}>
               <TableIcon size={16} />
             </TBtn>
           </ToolbarGroup>
@@ -671,8 +628,22 @@ export function EditorToolbar({ editor }) {
             </TBtn>
 
             <TBtn
+              title="Insert square"
+              onClick={() => insertShape('square')}
+            >
+              <Square size={16} />
+            </TBtn>
+
+            <TBtn
               title="Insert circle"
               onClick={() => insertShape('circle')}
+            >
+              <Circle size={16} />
+            </TBtn>
+
+            <TBtn
+              title="Insert ellipse"
+              onClick={() => insertShape('ellipse')}
             >
               <Circle size={16} />
             </TBtn>
@@ -681,7 +652,7 @@ export function EditorToolbar({ editor }) {
               title="Insert line"
               onClick={() => insertShape('line')}
             >
-              <LineIcon size={16} />
+              <Minus size={16} />
             </TBtn>
           </ToolbarGroup>
 
@@ -759,21 +730,14 @@ export function EditorToolbar({ editor }) {
               <Redo size={16} />
             </TBtn>
 
-            <TBtn
-              title="Clear formatting"
-              onClick={clearFormatting}
-            >
+            <TBtn title="Clear formatting" onClick={clearFormatting}>
               <RemoveFormatting size={16} />
             </TBtn>
           </ToolbarGroup>
-
         </div>
-
       </div>
 
-      {/* ------------------------------------------------------------------- */}
       {/* Link Dialog */}
-      {/* ------------------------------------------------------------------- */}
 
       <Dialog
         open={linkOpen}
@@ -790,10 +754,7 @@ export function EditorToolbar({ editor }) {
             </Button>
 
             {linkUrl && (
-              <Button
-                variant="outline"
-                onClick={removeLink}
-              >
+              <Button variant="outline" onClick={removeLink}>
                 Remove link
               </Button>
             )}
@@ -816,17 +777,13 @@ export function EditorToolbar({ editor }) {
             placeholder="https://example.com"
             autoFocus
             onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                applyLink();
-              }
+              if (event.key === 'Enter') applyLink();
             }}
           />
         </Field>
       </Dialog>
 
-      {/* ------------------------------------------------------------------- */}
       {/* Image Dialog */}
-      {/* ------------------------------------------------------------------- */}
 
       <Dialog
         open={imageOpen}

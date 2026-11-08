@@ -1,23 +1,37 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(Number(value) || min, max));
+}
+
+function normalizeWidth(value, fallback = '100%') {
+  if (typeof value === 'number') {
+    return `${value}px`;
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim();
+  }
+
+  return fallback;
+}
+
 function updateNodeAttributes(view, getPos, attributes) {
   try {
     const position = getPos();
 
-    if (typeof position !== 'number') {
-      return;
-    }
+    if (typeof position !== 'number') return;
 
-    const transaction = view.state.tr.setNodeMarkup(
-      position,
-      undefined,
-      {
-        ...view.state.doc.nodeAt(position)?.attrs,
+    const currentNode = view.state.doc.nodeAt(position);
+
+    if (!currentNode) return;
+
+    view.dispatch(
+      view.state.tr.setNodeMarkup(position, undefined, {
+        ...currentNode.attrs,
         ...attributes,
-      }
+      })
     );
-
-    view.dispatch(transaction);
   } catch (error) {
     console.warn('[BloomNotes] Image update failed:', error);
   }
@@ -65,11 +79,20 @@ export const ResizableImage = Node.create({
 
         getAttrs: (element) => ({
           src: element.getAttribute('src'),
+
           alt: element.getAttribute('alt') || '',
+
           title: element.getAttribute('title'),
-          width: element.getAttribute('width') || '100%',
+
+          width:
+            element.getAttribute('data-width') ||
+            element.style.width ||
+            element.getAttribute('width') ||
+            '100%',
+
           alignment:
-            element.getAttribute('data-alignment') || 'center',
+            element.getAttribute('data-alignment') ||
+            'center',
         }),
       },
     ];
@@ -81,6 +104,8 @@ export const ResizableImage = Node.create({
       width = '100%',
       ...attributes
     } = HTMLAttributes;
+
+    const safeWidth = normalizeWidth(width);
 
     const margin =
       alignment === 'left'
@@ -94,19 +119,28 @@ export const ResizableImage = Node.create({
       mergeAttributes(attributes, {
         'data-type': 'resizable-image',
         'data-alignment': alignment,
-        width,
-        style: `width: ${width}; max-width: 100%; height: auto; display: block; margin: ${margin};`,
+        'data-width': safeWidth,
+
+        style: `
+          width: ${safeWidth};
+          max-width: 100%;
+          height: auto;
+          display: block;
+          margin: ${margin};
+        `,
       }),
     ];
   },
 
   addNodeView() {
-    const thisNodeType = this.type;
+    const nodeType = this.type;
 
-return ({ node, getPos, view }) => {
-      const document = view.dom.ownerDocument;
+    return ({ node, getPos, view }) => {
+      const doc = view.dom.ownerDocument;
+      const win = doc.defaultView;
 
-      const wrapper = document.createElement('div');
+      const wrapper = doc.createElement('div');
+
       wrapper.className = 'bn-image-node';
       wrapper.contentEditable = 'false';
       wrapper.draggable = true;
@@ -114,34 +148,39 @@ return ({ node, getPos, view }) => {
       Object.assign(wrapper.style, {
         position: 'relative',
         display: 'table',
+        width: 'fit-content',
         maxWidth: '100%',
         margin: '16px auto',
         lineHeight: '0',
       });
 
-      const image = document.createElement('img');
+      const image = doc.createElement('img');
 
       image.src = node.attrs.src || '';
       image.alt = node.attrs.alt || '';
       image.title = node.attrs.title || '';
+      image.draggable = false;
 
       Object.assign(image.style, {
         display: 'block',
-        width: node.attrs.width || '100%',
+        width: normalizeWidth(node.attrs.width),
         maxWidth: '100%',
         height: 'auto',
         borderRadius: '8px',
         userSelect: 'none',
+        boxSizing: 'border-box',
       });
 
-      image.draggable = false;
-
-      const resizeHandle = document.createElement('button');
+      const resizeHandle = doc.createElement('button');
 
       resizeHandle.type = 'button';
       resizeHandle.className = 'bn-image-resize-handle';
       resizeHandle.title = 'Resize image';
-      resizeHandle.setAttribute('aria-label', 'Resize image');
+
+      resizeHandle.setAttribute(
+        'aria-label',
+        'Resize image'
+      );
 
       Object.assign(resizeHandle.style, {
         position: 'absolute',
@@ -152,6 +191,7 @@ return ({ node, getPos, view }) => {
         border: '2px solid white',
         borderRadius: '50%',
         background: '#8b5cf6',
+        boxShadow: '0 1px 4px rgba(0,0,0,.25)',
         cursor: 'nwse-resize',
         padding: '0',
         zIndex: '5',
@@ -163,97 +203,118 @@ return ({ node, getPos, view }) => {
       let startX = 0;
       let startWidth = 0;
 
-      const getCurrentWidth = () => {
-        const value = node.attrs.width;
+      const currentRenderedWidth = () => {
+        const rect = image.getBoundingClientRect();
 
-        if (typeof value === 'number') {
-          return value;
+        if (rect.width) {
+          return rect.width;
         }
 
-        if (typeof value === 'string' && value.endsWith('px')) {
-          return parseFloat(value);
+        const raw = node.attrs.width;
+
+        if (typeof raw === 'number') {
+          return raw;
         }
 
-        return image.getBoundingClientRect().width || 400;
+        if (
+          typeof raw === 'string' &&
+          raw.endsWith('px')
+        ) {
+          return parseFloat(raw);
+        }
+
+        return 400;
       };
 
-      const handlePointerMove = (event) => {
-        if (!resizing) {
-          return;
-        }
+      const removeListeners = () => {
+        win?.removeEventListener(
+          'pointermove',
+          onPointerMove
+        );
 
-        const delta = event.clientX - startX;
+        win?.removeEventListener(
+          'pointerup',
+          onPointerUp
+        );
+
+        win?.removeEventListener(
+          'pointercancel',
+          onPointerUp
+        );
+      };
+
+      const onPointerMove = (event) => {
+        if (!resizing) return;
 
         const parentWidth =
-          wrapper.parentElement?.getBoundingClientRect().width || 900;
+          wrapper.parentElement?.getBoundingClientRect().width ||
+          900;
 
-        const nextWidth = Math.max(
+        const nextWidth = clamp(
+          startWidth + event.clientX - startX,
           80,
-          Math.min(startWidth + delta, parentWidth)
+          parentWidth
         );
 
         image.style.width = `${nextWidth}px`;
         wrapper.style.width = `${nextWidth}px`;
       };
 
-      const handlePointerUp = () => {
-        if (!resizing) {
-          return;
-        }
+      const onPointerUp = () => {
+        if (!resizing) return;
 
         resizing = false;
 
         const finalWidth = Math.round(
-          image.getBoundingClientRect().width
+          image.getBoundingClientRect().width ||
+          currentRenderedWidth()
         );
 
         updateNodeAttributes(view, getPos, {
           width: `${finalWidth}px`,
         });
 
-        document.defaultView?.removeEventListener(
-          'pointermove',
-          handlePointerMove
-        );
-
-        document.defaultView?.removeEventListener(
-          'pointerup',
-          handlePointerUp
-        );
+        removeListeners();
       };
 
-      const handlePointerDown = (event) => {
+      const onPointerDown = (event) => {
         event.preventDefault();
         event.stopPropagation();
 
         resizing = true;
+
         startX = event.clientX;
-        startWidth = getCurrentWidth();
+        startWidth = currentRenderedWidth();
 
-        document.defaultView?.addEventListener(
+        win?.addEventListener(
           'pointermove',
-          handlePointerMove
+          onPointerMove
         );
 
-        document.defaultView?.addEventListener(
+        win?.addEventListener(
           'pointerup',
-          handlePointerUp
+          onPointerUp
         );
+
+        win?.addEventListener(
+          'pointercancel',
+          onPointerUp
+        );
+      };
+
+      const applyAlignment = (alignment) => {
+        wrapper.style.margin =
+          alignment === 'left'
+            ? '16px auto 16px 0'
+            : alignment === 'right'
+              ? '16px 0 16px auto'
+              : '16px auto';
       };
 
       resizeHandle.addEventListener(
         'pointerdown',
-        handlePointerDown
+        onPointerDown
       );
-
-      const applyAlignment = (alignment) => {
-  wrapper.style.margin =
-    alignment === 'left'
-      ? '16px auto 16px 0'
-      : alignment === 'right'
-        ? '16px 0 16px auto'
-        : '16px auto';
-};
 
       applyAlignment(node.attrs.alignment || 'center');
 
@@ -261,14 +322,21 @@ return ({ node, getPos, view }) => {
         dom: wrapper,
 
         update(updatedNode) {
-          if (updatedNode.type !== thisNodeType) {
+          if (updatedNode.type !== nodeType) {
             return false;
           }
+
+          node = updatedNode;
 
           image.src = updatedNode.attrs.src || '';
           image.alt = updatedNode.attrs.alt || '';
           image.title = updatedNode.attrs.title || '';
-          image.style.width = updatedNode.attrs.width || '100%';
+
+          image.style.width = normalizeWidth(
+            updatedNode.attrs.width
+          );
+
+          wrapper.style.width = 'fit-content';
 
           applyAlignment(
             updatedNode.attrs.alignment || 'center'
@@ -278,11 +346,15 @@ return ({ node, getPos, view }) => {
         },
 
         selectNode() {
-          wrapper.classList.add('ProseMirror-selectednode');
+          wrapper.classList.add(
+            'ProseMirror-selectednode'
+          );
         },
 
         deselectNode() {
-          wrapper.classList.remove('ProseMirror-selectednode');
+          wrapper.classList.remove(
+            'ProseMirror-selectednode'
+          );
         },
 
         stopEvent(event) {
@@ -295,19 +367,11 @@ return ({ node, getPos, view }) => {
         destroy() {
           resizing = false;
 
-          document.defaultView?.removeEventListener(
-            'pointermove',
-            handlePointerMove
-          );
-
-          document.defaultView?.removeEventListener(
-            'pointerup',
-            handlePointerUp
-          );
+          removeListeners();
 
           resizeHandle.removeEventListener(
             'pointerdown',
-            handlePointerDown
+            onPointerDown
           );
         },
       };
