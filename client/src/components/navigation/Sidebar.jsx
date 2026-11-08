@@ -65,7 +65,7 @@ export function Sidebar({
           'md:relative md:inset-auto md:z-20 md:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
           'w-[244px]',
-          collapsed ? 'md:w-[68px]' : 'md:w-[244px]'
+          collapsed ? 'md:w-[68px]' : 'md:w-[243px]'
         )}
       >
         {/* Floral Background Image */}
