@@ -51,7 +51,7 @@ import {
   cn,
 } from '../../lib/utils.js';
 
-import lavenderBg from '../../../assets/background/lavender.png';
+import lavenderBg from '../../../assets/background/favv.png';
 
 // --------------------------------------------------
 // File type helpers
@@ -61,49 +61,49 @@ const FILE_TYPES = {
   pdf: {
     exts: ['pdf'],
     icon: FileText,
-    color: '#E53935',
+    color: '#A65F75',
     label: 'PDF Document',
     shortLabel: 'PDF',
   },
   doc: {
     exts: ['doc', 'docx'],
     icon: FileText,
-    color: '#1976D2',
+    color: '#A65F75',
     label: 'Word Document',
     shortLabel: 'DOC',
   },
   sheet: {
     exts: ['xls', 'xlsx', 'csv'],
     icon: FileSpreadsheet,
-    color: '#2E7D32',
+    color: '#A65F75',
     label: 'Spreadsheet',
     shortLabel: 'XLS',
   },
   slides: {
     exts: ['ppt', 'pptx'],
     icon: Presentation,
-    color: '#E65100',
+    color: '#A65F75',
     label: 'Presentation',
     shortLabel: 'PPT',
   },
   image: {
     exts: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'],
     icon: FileImage,
-    color: '#7B1FA2',
+    color: '#A65F75',
     label: 'Image',
     shortLabel: 'IMG',
   },
   text: {
     exts: ['txt', 'md', 'rtf'],
     icon: File,
-    color: '#616161',
+    color: '#A65F75',
     label: 'Text File',
     shortLabel: 'TXT',
   },
   other: {
     exts: [],
     icon: File,
-    color: '#757575',
+    color: '#A65F75',
     label: 'Other File',
     shortLabel: 'FILE',
   },
@@ -163,7 +163,7 @@ export default function Vault() {
 
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
-  const [view, setView] = useState('list');
+  const [view, setView] = useState('grid');
 
   const [previewFile, setPreviewFile] = useState(null);
   const [previewLoadingId, setPreviewLoadingId] = useState(null);
@@ -480,27 +480,27 @@ export default function Vault() {
       />
 
       {/* Transparent overlay */}
-      <div className="absolute inset-0 z-0 bg-white/20 dark:bg-black/20" />
+      <div className="absolute inset-0 z-0 bg-white/35 dark:bg-[#17131A]/60" />
 
       <main className="relative z-10 mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
 
         {/* Drag overlay */}
         {dragOver && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-[#6240C8] bg-white/65 backdrop-blur-sm dark:bg-black/60">
+          <div className="absolute inset-0 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-[#A65F75] bg-white/65 backdrop-blur-sm dark:bg-black/60">
             <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm dark:bg-gray-900">
-                <Upload size={28} className="text-[#6240C8]" />
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm dark:bg-[#241B22]">
+                <Upload size={28} className="text-[#A65F75]" />
               </div>
 
-              <p className="text-lg font-semibold text-[#10123D] dark:text-white">
+              <p className="text-lg font-semibold text-[#30232B] dark:text-white">
                 Drop files to upload
               </p>
 
-              <p className="mt-1 text-sm text-[#51418F] dark:text-gray-300">
+              <p className="mt-1 text-sm text-[#66515B] dark:text-[#D6C8CE]">
                 PDF, DOCX, XLSX, PPTX, TXT and images
               </p>
 
-              <p className="mt-1 text-xs text-[#81749D] dark:text-gray-400">
+              <p className="mt-1 text-xs text-[#897780] dark:text-[#B8A7AF]">
                 Maximum 25 MB per file
               </p>
             </div>
@@ -511,24 +511,24 @@ export default function Vault() {
         <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#E8D8FF] bg-white/85 shadow-sm dark:border-white/10 dark:bg-gray-900/80">
-                <Lock size={19} className="text-[#6240C8]" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-border/60 bg-card/70 shadow-sm backdrop-blur-xl dark:border-border/60">
+                <Lock size={19} className="text-[#A65F75]" />
               </div>
 
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#6240C8] dark:text-purple-300">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#A65F75] dark:text-[#D9A8B7]">
                 Personal storage
               </span>
             </div>
 
-            <h1 className="text-2xl font-bold text-[#10123D] dark:text-white sm:text-3xl">
+            <h1 className="text-2xl font-bold text-[#30232B] dark:text-white sm:text-3xl">
               Private Vault
             </h1>
 
-            <p className="mt-1 text-sm text-[#51418F] dark:text-gray-300">
+            <p className="mt-1 text-sm text-[#66515B] dark:text-[#D6C8CE]">
               Keep your important documents and files securely organized.
             </p>
 
-            <p className="mt-2 text-xs text-[#81749D] dark:text-gray-400">
+            <p className="mt-2 text-xs text-[#897780] dark:text-[#B8A7AF]">
               {(data?.items || []).length} files
               <span className="mx-2">·</span>
               {bytesToHuman(totalSize)} used
@@ -602,7 +602,7 @@ export default function Vault() {
           <div className="relative min-w-0 flex-1">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#81749D]"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#897780]"
             />
 
             <Input
@@ -613,15 +613,15 @@ export default function Vault() {
             />
           </div>
 
-          <div className="flex w-fit items-center rounded-xl border border-[#E8D8FF] bg-white/75 p-1 dark:border-white/10 dark:bg-gray-900/75">
+          <div className="flex w-fit items-center rounded-xl border border-border/60 bg-card/65 p-1 backdrop-blur-xl dark:border-border/60">
             <button
               type="button"
               onClick={() => setView('list')}
               className={cn(
                 'rounded-lg p-2 transition-all',
                 view === 'list'
-                  ? 'bg-[#6240C8] text-white shadow-sm'
-                  : 'text-[#81749D] hover:bg-[#F2EBFF] dark:hover:bg-white/10'
+                  ? 'bg-[#A65F75] text-white shadow-sm'
+                  : 'text-[#897780] hover:bg-[#F4E9ED] dark:hover:bg-white/10'
               )}
               aria-label="List view"
               title="List view"
@@ -635,8 +635,8 @@ export default function Vault() {
               className={cn(
                 'rounded-lg p-2 transition-all',
                 view === 'grid'
-                  ? 'bg-[#6240C8] text-white shadow-sm'
-                  : 'text-[#81749D] hover:bg-[#F2EBFF] dark:hover:bg-white/10'
+                  ? 'bg-[#A65F75] text-white shadow-sm'
+                  : 'text-[#897780] hover:bg-[#F4E9ED] dark:hover:bg-white/10'
               )}
               aria-label="Grid view"
               title="Grid view"
@@ -665,8 +665,8 @@ export default function Vault() {
               className={cn(
                 'rounded-full border px-3 py-1.5 text-xs font-medium transition-all',
                 activeFilter === filter.id
-                  ? 'border-[#6240C8] bg-[#6240C8] text-white shadow-sm'
-                  : 'border-[#E8D8FF] bg-white/75 text-[#51418F] hover:border-[#BFA8EE] hover:bg-white dark:border-white/10 dark:bg-gray-900/75 dark:text-gray-300 dark:hover:bg-gray-800'
+                  ? 'border-[#A65F75] bg-[#A65F75] text-white shadow-sm'
+                  : 'border-[#E8D5DC] bg-white/75 text-[#66515B] hover:border-[#CFA7B5] hover:bg-white dark:border-white/[0.10] dark:bg-card/60 dark:text-[#D6C8CE] dark:hover:bg-gray-800'
               )}
             >
               {filter.label}
@@ -676,7 +676,7 @@ export default function Vault() {
                   'ml-1.5',
                   activeFilter === filter.id
                     ? 'text-white/80'
-                    : 'text-[#9586B0] dark:text-gray-400'
+                    : 'text-[#9B8991] dark:text-[#B8A7AF]'
                 )}
               >
                 {filter.count}
@@ -696,7 +696,7 @@ export default function Vault() {
 
         {/* Files */}
         {files.length === 0 ? (
-          <div className="rounded-[22px] border border-[#E8D8FF] bg-white/85 p-6 shadow-sm dark:border-white/10 dark:bg-gray-900/85">
+          <div className="rounded-[22px] border border-[#E8D5DC] bg-card/70 p-6 shadow-card backdrop-blur-xl dark:border-border/60">
             <EmptyState
               icon={Lock}
               title={search ? 'No matching files' : 'Vault is empty'}
@@ -732,7 +732,7 @@ export default function Vault() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {files.map((file) => (
               <FileTile
                 key={file.id}
@@ -773,7 +773,7 @@ export default function Vault() {
           {previewFile && (
             <div className="space-y-4">
               {isImageFile(previewFile) && (
-                <div className="flex min-h-[260px] items-center justify-center overflow-hidden rounded-xl2 border border-[#E8D8FF] bg-white/70 p-3 dark:border-white/10 dark:bg-gray-800 sm:min-h-[420px]">
+                <div className="flex min-h-[260px] items-center justify-center overflow-hidden rounded-xl2 border border-[#E8D5DC] bg-card/65 p-3 backdrop-blur-xl dark:border-border/60 dark:bg-card/60 sm:min-h-[420px]">
                   <img
                     src={previewFile.url}
                     alt={previewFile.file_name}
@@ -784,7 +784,7 @@ export default function Vault() {
               )}
 
               {isPdfFile(previewFile) && (
-                <div className="overflow-hidden rounded-xl2 border border-[#E8D8FF] dark:border-white/10">
+                <div className="overflow-hidden rounded-xl2 border border-[#E8D5DC] dark:border-white/[0.10]">
                   <iframe
                     src={`${previewFile.url}#toolbar=1&navpanes=0`}
                     title={previewFile.file_name}
@@ -794,9 +794,9 @@ export default function Vault() {
               )}
 
               {!isImageFile(previewFile) && !isPdfFile(previewFile) && (
-                <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl2 border border-[#E8D8FF] bg-white/70 px-5 py-10 text-center dark:border-white/10 dark:bg-gray-800">
+                <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl2 border border-[#E8D5DC] bg-card/65 px-5 py-10 text-center backdrop-blur-xl dark:border-border/60 dark:bg-card/60">
                   <div
-                    className="mb-5 flex h-24 w-24 items-center justify-center rounded-3xl bg-white shadow-sm dark:bg-gray-900"
+                    className="mb-5 flex h-24 w-24 items-center justify-center rounded-3xl bg-white shadow-sm dark:bg-[#241B22]"
                     style={{
                       border: `1px solid ${getFileType(previewFile.file_name).color}30`,
                     }}
@@ -814,11 +814,11 @@ export default function Vault() {
                     {getExtension(previewFile.file_name)} File
                   </span>
 
-                  <h3 className="max-w-full break-all text-base font-semibold text-[#10123D] dark:text-white">
+                  <h3 className="max-w-full break-all text-base font-semibold text-[#30232B] dark:text-white">
                     {previewFile.file_name}
                   </h3>
 
-                  <p className="mt-2 max-w-sm text-sm text-[#81749D] dark:text-gray-400">
+                  <p className="mt-2 max-w-sm text-sm text-[#897780] dark:text-[#B8A7AF]">
                     Preview rendering is not available for this file format yet.
                     Download the file to view its complete contents.
                   </p>
@@ -833,7 +833,7 @@ export default function Vault() {
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#E8D8FF] pt-3 text-xs text-[#81749D] dark:border-white/10 dark:text-gray-400">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#E8D5DC] pt-3 text-xs text-[#897780] dark:border-white/[0.10] dark:text-[#B8A7AF]">
                 <div className="flex flex-wrap items-center gap-2">
                   <span>{bytesToHuman(previewFile.size_bytes)}</span>
                   <span>·</span>
@@ -906,17 +906,17 @@ export default function Vault() {
         >
           {detailsFile && (
             <div className="space-y-3">
-              <div className="flex items-center gap-3 rounded-xl2 border border-[#E8D8FF] bg-white/70 p-3 dark:border-white/10 dark:bg-gray-800">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl2 bg-white dark:bg-gray-900">
+              <div className="flex items-center gap-3 rounded-xl2 border border-[#E8D5DC] bg-card/65 p-3 backdrop-blur-xl dark:border-border/60 dark:bg-card/60">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl2 bg-white dark:bg-[#241B22]">
                   {fileIcon(detailsFile.file_name, 24)}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="break-all text-sm font-semibold text-[#10123D] dark:text-white">
+                  <p className="break-all text-sm font-semibold text-[#30232B] dark:text-white">
                     {detailsFile.file_name}
                   </p>
 
-                  <p className="mt-0.5 text-xs text-[#81749D] dark:text-gray-400">
+                  <p className="mt-0.5 text-xs text-[#897780] dark:text-[#B8A7AF]">
                     {getFileType(detailsFile.file_name).label}
                   </p>
                 </div>
@@ -967,14 +967,14 @@ export default function Vault() {
 
 function StatCard({ icon: Icon, label, value }) {
   return (
-    <div className="flex items-center gap-3 rounded-[20px] border border-[#E8D8FF] bg-white/85 p-4 shadow-[0_4px_18px_rgba(98,64,200,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(98,64,200,0.12)] dark:border-white/10 dark:bg-gray-900/85">
-      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#F2EBFF] text-[#6240C8] dark:bg-purple-500/15 dark:text-purple-300">
+    <div className="flex items-center gap-3 rounded-[20px] border border-border/60 bg-card/70 p-4 shadow-[0_4px_18px_rgba(166,95,117,0.07)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(166,95,117,0.13)] dark:border-white/[0.10] dark:bg-card/65">
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#F4E9ED] text-[#A65F75] dark:bg-[#A65F75]/15 dark:text-[#D9A8B7]">
         <Icon size={18} />
       </div>
 
       <div className="min-w-0">
-        <p className="text-xs text-[#81749D] dark:text-gray-400">{label}</p>
-        <p className="mt-0.5 truncate text-lg font-semibold text-[#10123D] dark:text-white">
+        <p className="text-xs text-[#897780] dark:text-[#B8A7AF]">{label}</p>
+        <p className="mt-0.5 truncate text-lg font-semibold text-[#30232B] dark:text-white">
           {value}
         </p>
       </div>
@@ -994,7 +994,7 @@ function UploadProgressCard({ entry }) {
     <Card>
       <CardBody className="py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl2 bg-[#F2EBFF] dark:bg-purple-500/15">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl2 bg-[#F4E9ED] dark:bg-[#A65F75]/15">
             {isError ? (
               <AlertCircle size={16} className="text-red-500" />
             ) : isDone ? (
@@ -1019,7 +1019,7 @@ function UploadProgressCard({ entry }) {
               </span>
             </div>
 
-            <div className="h-1.5 overflow-hidden rounded-full bg-[#EDE2FA] dark:bg-white/10">
+            <div className="h-1.5 overflow-hidden rounded-full bg-[#EADDE2] dark:bg-white/10">
               <div
                 className={cn(
                   'h-full rounded-full transition-all duration-300',
@@ -1027,7 +1027,7 @@ function UploadProgressCard({ entry }) {
                     ? 'bg-red-500'
                     : isDone
                       ? 'bg-green-500'
-                      : 'bg-[#6240C8]'
+                      : 'bg-[#A65F75]'
                 )}
                 style={{
                   width: `${isError || isDone ? 100 : entry.progress}%`,
@@ -1087,7 +1087,7 @@ function FileCover({ file, className = '' }) {
   return (
     <div
       className={cn(
-        'flex h-full w-full flex-col items-center justify-center gap-2 bg-[#F7F3FF] dark:bg-gray-800',
+        'flex h-full w-full flex-col items-center justify-center gap-2 bg-[#F8F1F3]/80 dark:bg-[#211A22]',
         className
       )}
     >
@@ -1096,14 +1096,14 @@ function FileCover({ file, className = '' }) {
       ) : (
         <>
           <div
-            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm dark:bg-gray-900"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/90 shadow-sm dark:bg-[#211A22]"
             style={{ border: `1px solid ${type.color}25` }}
           >
-            <Icon size={28} style={{ color: type.color }} />
+            <Icon size={22} strokeWidth={1.9} style={{ color: type.color }} />
           </div>
 
           <span
-            className="rounded-md px-2 py-1 text-[9px] font-bold tracking-wider"
+            className="rounded-md px-2 py-0.5 text-[8px] font-bold tracking-wider"
             style={{
               color: type.color,
               backgroundColor: `${type.color}12`,
@@ -1134,13 +1134,13 @@ function FileRow({
   const type = getFileType(file.file_name);
 
   return (
-    <Card className="group transition-all duration-200 hover:border-[#CBB8F2] hover:shadow-[0_6px_22px_rgba(98,64,200,0.10)]">
+    <Card className="group transition-all duration-200 hover:border-[#D9B7C1] hover:shadow-[0_6px_22px_rgba(166,95,117,0.10)]">
       <CardBody className="flex items-center gap-3 py-3 sm:gap-4">
         <button
           type="button"
           onClick={onPreview}
           disabled={previewLoading}
-          className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl2 border border-[#E8D8FF] bg-[#F7F3FF] transition-all hover:border-[#BFA8EE] dark:border-white/10 dark:bg-gray-800"
+          className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-2xl border border-[#E8D5DC] bg-[#F8F1F3] transition-all hover:border-[#CFA7B5] dark:border-white/[0.10] dark:bg-[#241B22]"
           aria-label="Preview file"
           title="Preview file"
         >
@@ -1152,11 +1152,11 @@ function FileRow({
           onClick={onDetails}
           className="min-w-0 flex-1 cursor-pointer text-left"
         >
-          <p className="truncate text-sm font-medium text-[#10123D] dark:text-white">
+          <p className="truncate text-sm font-medium text-[#30232B] dark:text-white">
             {file.file_name}
           </p>
 
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#81749D] dark:text-gray-400">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#897780] dark:text-[#B8A7AF]">
             <span>{type.shortLabel}</span>
             <span>·</span>
             <span>{bytesToHuman(file.size_bytes)}</span>
@@ -1166,7 +1166,7 @@ function FileRow({
             {file.category && (
               <>
                 <span>·</span>
-                <span className="rounded-full bg-[#F2EBFF] px-2 py-0.5 text-[#6240C8] dark:bg-purple-500/15 dark:text-purple-300">
+                <span className="rounded-full bg-[#F4E9ED] px-2 py-0.5 text-[#A65F75] dark:bg-[#A65F75]/15 dark:text-[#D9A8B7]">
                   {file.category}
                 </span>
               </>
@@ -1248,12 +1248,12 @@ function FileTile({
   const type = getFileType(file.file_name);
 
   return (
-    <Card className="group relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-[#CBB8F2] hover:shadow-[0_8px_24px_rgba(98,64,200,0.12)]">
+    <Card className="group relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-[#D9B7C1] hover:shadow-[0_8px_24px_rgba(166,95,117,0.13)]">
       <button
         type="button"
         onClick={onPreview}
         disabled={previewLoading}
-        className="relative block aspect-square w-full overflow-hidden bg-[#F7F3FF] dark:bg-gray-800"
+        className="relative block aspect-square w-full overflow-hidden bg-[#F8F1F3]/80 dark:bg-[#211A22]"
         aria-label="Open file preview"
       >
         <FileCover file={file} />
@@ -1274,14 +1274,14 @@ function FileTile({
         <button
           type="button"
           onClick={onDetails}
-          className="w-full truncate text-left text-xs font-medium text-[#10123D] hover:text-[#6240C8] dark:text-white"
+          className="w-full truncate text-left text-xs font-medium text-[#30232B] hover:text-[#A65F75] dark:text-white"
           title={file.file_name}
         >
           {file.file_name}
         </button>
 
         <div className="mt-2 flex items-center justify-between gap-2">
-          <span className="text-[10px] text-[#81749D] dark:text-gray-400">
+          <span className="text-[10px] text-[#897780] dark:text-[#B8A7AF]">
             {bytesToHuman(file.size_bytes)}
           </span>
 
@@ -1301,7 +1301,7 @@ function FileTile({
             event.stopPropagation();
             onDetails();
           }}
-          className="rounded-lg bg-white/95 p-1.5 text-slate-800 shadow-sm backdrop-blur transition-colors hover:bg-white dark:bg-gray-900/95 dark:text-white"
+          className="rounded-lg bg-white/95 p-1.5 text-slate-800 shadow-sm backdrop-blur transition-colors hover:bg-white dark:bg-[#241B22]/95 dark:text-white"
           aria-label="File details"
           title="Details"
         >
@@ -1314,7 +1314,7 @@ function FileTile({
             event.stopPropagation();
             onDownload();
           }}
-          className="rounded-lg bg-white/95 p-1.5 text-slate-800 shadow-sm backdrop-blur transition-colors hover:bg-white dark:bg-gray-900/95 dark:text-white"
+          className="rounded-lg bg-white/95 p-1.5 text-slate-800 shadow-sm backdrop-blur transition-colors hover:bg-white dark:bg-[#241B22]/95 dark:text-white"
           aria-label="Download"
           title="Download"
         >
@@ -1328,7 +1328,7 @@ function FileTile({
             event.stopPropagation();
             onDelete();
           }}
-          className="rounded-lg bg-white/95 p-1.5 text-red-500 shadow-sm backdrop-blur transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-900/95"
+          className="rounded-lg bg-white/95 p-1.5 text-red-500 shadow-sm backdrop-blur transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-[#241B22]/95"
           aria-label="Delete"
           title="Delete"
         >
@@ -1349,14 +1349,14 @@ function FileTile({
 
 function DetailRow({ icon: Icon, label, value }) {
   return (
-    <div className="flex items-center gap-3 border-b border-[#EDE2FA] py-2.5 last:border-0 dark:border-white/10">
-      <Icon size={14} className="flex-shrink-0 text-[#81749D] dark:text-gray-400" />
+    <div className="flex items-center gap-3 border-b border-[#EADDE2] py-2.5 last:border-0 dark:border-white/[0.10]">
+      <Icon size={14} className="flex-shrink-0 text-[#897780] dark:text-[#B8A7AF]" />
 
-      <span className="w-24 flex-shrink-0 text-xs text-[#81749D] dark:text-gray-400">
+      <span className="w-24 flex-shrink-0 text-xs text-[#897780] dark:text-[#B8A7AF]">
         {label}
       </span>
 
-      <span className="min-w-0 flex-1 break-all text-sm text-[#10123D] dark:text-white">
+      <span className="min-w-0 flex-1 break-all text-sm text-[#30232B] dark:text-white">
         {value || '—'}
       </span>
     </div>

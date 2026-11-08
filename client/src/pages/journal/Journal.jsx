@@ -53,7 +53,8 @@ import {
 import { excerptFromContent } from '../../lib/utils.js';
 import { useConfirm } from '../../contexts/ConfirmContext.jsx';
 
-import noteFlower from '../../../assets/background/note-card-flower.png';
+import noteCardBackground from '../../../assets/background/notecard.png';
+import favvBackground from '../../../assets/background/favv1.png';
 
 const MOODS = [
   { id: 'joyful', label: 'Joyful', emoji: '😄', color: '#D97706' },
@@ -127,7 +128,7 @@ export default function Journal() {
     editorProps: {
       attributes: {
         class:
-          'ProseMirror journal-prose min-h-[280px] px-5 py-5 sm:px-7 sm:py-6 outline-none text-[#51418F] dark:text-slate-200',
+          'ProseMirror journal-prose min-h-[280px] px-5 py-5 sm:px-7 sm:py-6 outline-none text-[#8D596B] dark:text-slate-200',
       },
     },
   });
@@ -289,8 +290,8 @@ export default function Journal() {
         onClick={action}
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-30 ${
           isActive
-            ? 'bg-[#EDE4FF] text-[#7045C5] shadow-sm dark:bg-purple-500/20 dark:text-purple-300'
-            : 'text-[#67578F] hover:bg-[#F2EDFA] hover:text-[#7045C5] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-purple-300'
+            ? 'bg-[#F8E8EC] text-[#B85C78] shadow-sm dark:bg-rose-500/20 dark:text-rose-300'
+            : 'text-[#987D86] hover:bg-[#FBEFF2] hover:text-[#B85C78] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-rose-300'
         }`}
       >
         <Icon size={17} strokeWidth={2} />
@@ -319,22 +320,30 @@ export default function Journal() {
   }
 
   return (
-    <div className="relative min-h-full overflow-hidden">
+    <div className="journal-page relative isolate min-h-full overflow-hidden">
+      <div aria-hidden="true" className="journal-page-backdrop pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <img
+          src={favvBackground}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-[#FFF8FA]/40 dark:bg-[#100A0E]/55" />
+      </div>
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
 
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F1E8FF] text-[#6240C8] dark:bg-purple-950/50 dark:text-purple-400">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F9E9ED] text-[#B85C78] dark:bg-rose-950/40 dark:text-rose-300">
               <BookOpen size={23} />
             </div>
 
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[#10123D] dark:text-slate-100 sm:text-3xl">
+              <h1 className="text-2xl font-bold tracking-tight text-[#38242D] dark:text-slate-100 sm:text-3xl">
                 My Journal
               </h1>
 
-              <p className="mt-1 text-sm text-[#51418F] dark:text-slate-400">
+              <p className="mt-1 text-sm text-[#8D596B] dark:text-slate-400">
                 Capture your thoughts, moods and everyday moments.
               </p>
             </div>
@@ -354,14 +363,14 @@ export default function Journal() {
           <div className="relative w-full sm:max-w-sm">
             <Search
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#62529D]"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A56D80]"
             />
 
             <Input
               value={search}
               onChange={(event) => handleSearchChange(event.target.value)}
               placeholder="Search journal entries..."
-              className="bg-white/75 pl-10 pr-10 dark:bg-slate-900/70"
+              className="bg-white/75 pl-10 pr-10 dark:bg-[#21171D]"
             />
 
             {search && (
@@ -376,19 +385,19 @@ export default function Journal() {
             )}
           </div>
 
-          <span className="text-sm font-medium text-[#51418F] dark:text-slate-400">
+          <span className="text-sm font-medium text-[#8D596B] dark:text-slate-400">
             {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
           </span>
         </div>
 
         {/* Section heading */}
-        <div className="mb-5 flex items-center justify-between border-b border-[#E8D8FF] pb-3 dark:border-slate-700">
+        <div className="mb-5 flex items-center justify-between border-b border-[#EED5DD] pb-3 dark:border-[#60404B]">
           <div>
-            <h2 className="text-lg font-bold text-[#10123D] dark:text-slate-100">
+            <h2 className="text-lg font-bold text-[#38242D] dark:text-slate-100">
               Your memories
             </h2>
 
-            <p className="mt-0.5 text-sm text-[#51418F] dark:text-slate-400">
+            <p className="mt-0.5 text-sm text-[#8D596B] dark:text-slate-400">
               Your personal collection of thoughts.
             </p>
           </div>
@@ -396,7 +405,7 @@ export default function Journal() {
 
         {/* Entries */}
         {entries.length === 0 ? (
-          <div className="rounded-[22px] border border-border/60 bg-card/70 px-5 py-12 shadow-sm backdrop-blur-xl">
+          <div className="rounded-[22px] border border-border/60 bg-card/70 px-5 py-12 shadow-sm backdrop-blur-xl dark:border-[#60404B] dark:bg-[#281B22]/96">
             <EmptyState
               icon={BookOpen}
               title="No journal entries"
@@ -405,7 +414,7 @@ export default function Journal() {
             />
           </div>
         ) : filteredEntries.length === 0 ? (
-          <div className="rounded-[22px] border border-border/60 bg-card/70 px-5 py-12 text-center shadow-sm backdrop-blur-xl">
+          <div className="rounded-[22px] border border-border/60 bg-card/70 px-5 py-12 text-center shadow-sm backdrop-blur-xl dark:border-[#60404B] dark:bg-[#281B22]/96">
             <Search size={28} className="mx-auto mb-3 text-accent" />
             <p className="font-semibold text-text-main">No matching entries</p>
             <p className="mt-1 text-sm text-text-muted">Try searching with another keyword.</p>
@@ -434,11 +443,25 @@ export default function Journal() {
                     tabIndex={0}
                     onClick={() => openPreview(entry)}
                     onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openPreview(entry); } }}
-                    className={`group relative isolate flex min-h-[285px] cursor-pointer flex-col overflow-hidden rounded-[22px] border border-border/60 bg-card/70 shadow-[0_4px_16px_rgba(50,35,90,0.07)] backdrop-blur-xl transition-all duration-300 hover:border-accent/40 hover:shadow-[0_8px_22px_rgba(50,35,90,0.10)] ${viewMode === 'list' ? 'w-full' : ''}`}
+                    className={`journal-entry-card group relative isolate flex min-h-[285px] cursor-pointer flex-col overflow-hidden rounded-[22px] border border-border/60 bg-card/70 shadow-[0_4px_16px_rgba(50,35,90,0.07)] backdrop-blur-xl transition-all duration-300 dark:border-[#60404B] dark:bg-[#281B22]/96 dark:shadow-[0_8px_28px_rgba(0,0,0,0.28)] hover:border-accent/40 hover:shadow-[0_8px_22px_rgba(50,35,90,0.10)] ${viewMode === 'list' ? 'w-full' : ''}`}
                   >
+                    {/* Full-card notecard artwork: visible in light and dark modes. */}
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[22px]"
+                    >
+                      <img
+                        src={noteCardBackground}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.62] dark:opacity-[0.22]"
+                      />
+                      <div className="absolute inset-0 bg-white/35 dark:hidden" />
+                      <div className="absolute inset-0 hidden bg-[#281B22]/65 dark:block" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-rose-100/15 dark:from-rose-950/10 dark:via-transparent dark:to-black/10" />
+                    </div>
+
                     <div aria-hidden="true" className="pointer-events-none absolute left-0 top-[22%] z-10 h-[56%] w-[4px] rounded-r-full bg-accent" />
                     <div aria-hidden="true" className="pointer-events-none absolute -right-3 -top-3 z-0 h-36 w-36 rounded-full bg-accent/20 blur-3xl" />
-                    <div aria-hidden="true" className="pointer-events-none absolute -bottom-1 -right-1 z-0 h-40 w-40 bg-contain bg-right-bottom bg-no-repeat opacity-[0.18] dark:opacity-[0.10]" style={{ backgroundImage: `url(${noteFlower})` }} />
 
                     <div className="relative z-10 flex flex-1 flex-col p-5 pl-6 sm:p-6 sm:pl-7">
                       <div className="mb-6 flex items-start justify-between gap-3">
@@ -516,9 +539,20 @@ export default function Journal() {
         {previewEntry && (() => {
           const previewMood = MOODS.find((item) => item.id === previewEntry.mood);
           return (
-            <div className="relative isolate overflow-hidden rounded-2xl border border-border/60 bg-card/70 backdrop-blur-xl">
-              <div aria-hidden="true" className="pointer-events-none absolute -right-3 -top-3 h-36 w-36 rounded-full bg-accent/15 blur-3xl" />
-              <div aria-hidden="true" className="pointer-events-none absolute -bottom-1 -right-1 h-40 w-40 bg-contain bg-right-bottom bg-no-repeat opacity-[0.12] dark:opacity-[0.08]" style={{ backgroundImage: `url(${noteFlower})` }} />
+            <div className="relative isolate overflow-hidden rounded-2xl border border-border/60 bg-card/70 backdrop-blur-xl dark:border-[#60404B] dark:bg-[#281B22]/98">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-2xl"
+              >
+                <img
+                  src={noteCardBackground}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.48] dark:opacity-[0.18]"
+                />
+                <div className="absolute inset-0 bg-white/45 dark:hidden" />
+                <div className="absolute inset-0 hidden bg-[#281B22]/75 dark:block" />
+              </div>
+              <div aria-hidden="true" className="pointer-events-none absolute -right-3 -top-3 z-[1] h-36 w-36 rounded-full bg-accent/15 blur-3xl" />
               <div className="relative z-10 p-5 sm:p-7">
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4">
                   <div className="flex items-center gap-2 text-sm text-text-muted"><CalendarDays size={15} />{formatDate(previewEntry.entry_date)}</div>
@@ -546,7 +580,7 @@ export default function Journal() {
         size="lg"
         footer={
           <div className="flex w-full items-center justify-between gap-3">
-            <span className="hidden text-xs text-[#8B7BAF] sm:block dark:text-slate-500">
+            <span className="hidden text-xs text-[#A58B93] sm:block dark:text-slate-500">
               Your thoughts, your private space.
             </span>
 
@@ -572,24 +606,24 @@ export default function Journal() {
         <div className="space-y-5">
 
           {/* Editor introduction */}
-          <div className="flex items-center gap-3 rounded-2xl border border-[#E9DFFF] bg-gradient-to-r from-[#F8F3FF]/90 to-[#FFF5FA]/90 p-4 dark:border-purple-900/50 dark:from-purple-950/30 dark:to-pink-950/20">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/90 text-[#8056C7] shadow-sm dark:bg-slate-800 dark:text-purple-300">
+          <div className="flex items-center gap-3 rounded-2xl border border-[#F3DDE3] bg-gradient-to-r from-[#FFF5F6]/90 to-[#FDF0F3]/90 p-4 dark:border-rose-900/40 dark:from-[#2B1B22]/90 dark:to-[#302029]/90">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/90 text-[#B85C78] shadow-sm dark:bg-[#30212A] dark:text-rose-300">
               <PenLine size={19} />
             </div>
 
             <div className="min-w-0">
-              <p className="font-semibold text-[#38265F] dark:text-slate-100">
+              <p className="font-semibold text-[#56313F] dark:text-slate-100">
                 A little space for your thoughts
               </p>
 
-              <p className="mt-0.5 text-xs text-[#806EAA] dark:text-slate-400">
+              <p className="mt-0.5 text-xs text-[#9B7883] dark:text-slate-400">
                 Write freely. Every little moment matters.
               </p>
             </div>
 
             <Sparkles
               size={19}
-              className="ml-auto shrink-0 text-[#B18AE8]"
+              className="ml-auto shrink-0 text-[#D58A9D]"
             />
           </div>
 
@@ -600,7 +634,7 @@ export default function Journal() {
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Give your day a title..."
               maxLength={150}
-              className="h-12 rounded-xl border-[#E5D8F7] bg-white/80 text-base font-semibold dark:border-slate-700 dark:bg-slate-900/80"
+              className="h-12 rounded-xl border-[#EBD3DA] bg-white/80 text-base font-semibold dark:border-[#60404B] dark:bg-[#21171D]"
             />
           </Field>
 
@@ -624,7 +658,7 @@ export default function Journal() {
                 type="date"
                 value={entryDate}
                 onChange={(event) => setEntryDate(event.target.value)}
-                className="h-11 rounded-xl border-[#E5D8F7] bg-white/80 dark:border-slate-700 dark:bg-slate-900/80"
+                className="h-11 rounded-xl border-[#EBD3DA] bg-white/80 dark:border-[#60404B] dark:bg-[#21171D]"
               />
             </Field>
           </div>
@@ -632,19 +666,19 @@ export default function Journal() {
           {/* Writing editor */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <label className="text-sm font-semibold text-[#49366F] dark:text-slate-200">
+              <label className="text-sm font-semibold text-[#56313F] dark:text-slate-200">
                 Your thoughts
               </label>
 
-              <span className="text-xs text-[#9A88BC] dark:text-slate-500">
+              <span className="text-xs text-[#A98B96] dark:text-slate-500">
                 Rich text editor
               </span>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-[#E4D7F5] bg-white/90 shadow-[0_4px_16px_rgba(91,55,150,0.06)] transition-colors focus-within:border-[#B99AE8] focus-within:shadow-[0_0_0_3px_rgba(185,154,232,0.13)] dark:border-slate-700 dark:bg-slate-900/90">
+            <div className="overflow-hidden rounded-2xl border border-[#EBD3DA] bg-white/90 shadow-[0_4px_16px_rgba(142,63,87,0.06)] transition-colors focus-within:border-[#C77C93] focus-within:shadow-[0_0_0_3px_rgba(184,92,120,0.13)] dark:border-[#60404B] dark:bg-[#21171D]">
 
               {/* Formatting toolbar */}
-              <div className="flex flex-wrap items-center gap-1 border-b border-[#EDE5F7] bg-[#FAF7FF]/90 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/80">
+              <div className="flex flex-wrap items-center gap-1 border-b border-[#F1DFE4] bg-[#FFF7F8]/90 px-3 py-2 dark:border-[#60404B] dark:bg-[#30212A]">
 
                 <div className="flex items-center gap-1">
                   {toolbarButton(
@@ -669,7 +703,7 @@ export default function Journal() {
                   )}
                 </div>
 
-                <div className="mx-1 h-6 w-px bg-[#E3D8F1] dark:bg-slate-700" />
+                <div className="mx-1 h-6 w-px bg-[#EBD3DA] dark:bg-[#60404B]" />
 
                 <div className="flex items-center gap-1">
                   {toolbarButton(
@@ -694,7 +728,7 @@ export default function Journal() {
                   )}
                 </div>
 
-                <div className="mx-1 h-6 w-px bg-[#E3D8F1] dark:bg-slate-700" />
+                <div className="mx-1 h-6 w-px bg-[#EBD3DA] dark:bg-[#60404B]" />
 
                 <div className="flex items-center gap-1">
                   {toolbarButton(
@@ -726,7 +760,7 @@ export default function Journal() {
                   )}
                 </div>
 
-                <div className="mx-1 h-6 w-px bg-[#E3D8F1] dark:bg-slate-700" />
+                <div className="mx-1 h-6 w-px bg-[#EBD3DA] dark:bg-[#60404B]" />
 
                 <div className="flex items-center gap-1">
                   {toolbarButton(
@@ -759,12 +793,12 @@ export default function Journal() {
               </div>
 
               {/* Editor footer */}
-              <div className="flex items-center justify-between border-t border-[#EDE5F7] bg-[#FCFAFF]/90 px-4 py-2.5 dark:border-slate-700 dark:bg-slate-800/70">
-                <span className="text-xs text-[#9584B5] dark:text-slate-500">
+              <div className="flex items-center justify-between border-t border-[#F1DFE4] bg-[#FFFAFB]/90 px-4 py-2.5 dark:border-[#60404B] dark:bg-[#30212A]">
+                <span className="text-xs text-[#A98B96] dark:text-slate-500">
                   Start writing whenever you're ready.
                 </span>
 
-                <span className="flex items-center gap-1.5 text-xs text-[#9584B5] dark:text-slate-500">
+                <span className="flex items-center gap-1.5 text-xs text-[#A98B96] dark:text-slate-500">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                   Editor ready
                 </span>
@@ -775,6 +809,38 @@ export default function Journal() {
       </Dialog>
 
       <style>{`
+        /* Midnight Rose: enforce a real dark backdrop above the app wallpaper. */
+        .journal-page-backdrop {
+          background: transparent;
+          transition: background-color 180ms ease;
+        }
+
+        html.dark .journal-page .journal-entry-card,
+        body.dark .journal-page .journal-entry-card,
+        .dark .journal-page .journal-entry-card {
+          background: #281B22 !important;
+          border-color: #60404B !important;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.34) !important;
+        }
+
+        html.dark .journal-page .text-text-main,
+        body.dark .journal-page .text-text-main,
+        .dark .journal-page .text-text-main {
+          color: #F8EDF1 !important;
+        }
+
+        html.dark .journal-page .text-text-muted,
+        body.dark .journal-page .text-text-muted,
+        .dark .journal-page .text-text-muted {
+          color: #CBB7C0 !important;
+        }
+
+        html.dark .journal-page .bg-card\/65,
+        body.dark .journal-page .bg-card\/65,
+        .dark .journal-page .bg-card\/65 {
+          background-color: #30212A !important;
+        }
+
         .journal-prose {
           font-size: 15px;
           line-height: 1.85;
@@ -790,7 +856,7 @@ export default function Journal() {
           font-size: 1.45rem;
           line-height: 1.35;
           font-weight: 700;
-          color: #49366F;
+          color: #56313F;
         }
 
         .journal-prose h3 {
@@ -798,12 +864,17 @@ export default function Journal() {
           font-size: 1.2rem;
           line-height: 1.4;
           font-weight: 700;
-          color: #624B8F;
+          color: #875467;
+        }
+
+        .dark .journal-prose {
+          color: #F3E5EA;
+          caret-color: #E5A0B2;
         }
 
         .dark .journal-prose h2,
         .dark .journal-prose h3 {
-          color: #D8C5FA;
+          color: #F0B9C8;
         }
 
         .journal-prose ul,
@@ -828,15 +899,15 @@ export default function Journal() {
         .journal-prose blockquote {
           margin: 16px 0;
           padding: 10px 16px;
-          border-left: 3px solid #B99AE8;
+          border-left: 3px solid #C77C93;
           border-radius: 0 10px 10px 0;
-          background: rgba(185, 154, 232, 0.10);
-          color: #75618F;
+          background: rgba(184, 92, 120, 0.10);
+          color: #A77D8B;
         }
 
         .dark .journal-prose blockquote {
-          color: #C4B5D9;
-          background: rgba(168, 135, 220, 0.10);
+          color: #D8B9C3;
+          background: rgba(184, 92, 120, 0.12);
         }
 
         .journal-prose pre {
@@ -844,20 +915,20 @@ export default function Journal() {
           padding: 14px;
           overflow-x: auto;
           border-radius: 12px;
-          background: #F3EFF9;
-          color: #49366F;
+          background: #33232A;
+          color: #56313F;
           font-size: 13px;
         }
 
         .dark .journal-prose pre {
-          background: #171827;
-          color: #DDD0F4;
+          background: #21171D;
+          color: #F5E9ED;
         }
 
         .journal-prose code {
           padding: 2px 5px;
           border-radius: 5px;
-          background: rgba(185, 154, 232, 0.16);
+          background: rgba(184, 92, 120, 0.16);
           font-size: 0.9em;
         }
 
@@ -869,23 +940,23 @@ export default function Journal() {
         .journal-prose hr {
           margin: 20px 0;
           border: 0;
-          border-top: 1px solid #E5D8F5;
+          border-top: 1px solid #EBD3DA;
         }
 
         .dark .journal-prose hr {
-          border-color: #3B354B;
+          border-color: #4A303A;
         }
 
         .journal-prose p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
           float: left;
           height: 0;
-          color: #AA9ABF;
+          color: #B69BA3;
           pointer-events: none;
         }
 
         .dark .journal-prose p.is-editor-empty:first-child::before {
-          color: #77718A;
+          color: #A98B96;
         }
 
         .journal-prose > *:last-child {

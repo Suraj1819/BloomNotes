@@ -80,7 +80,7 @@ import {
   excerptFromContent,
 } from '../../lib/utils.js';
 
-import lavenderBackground from '../../../assets/background/fav3.png';
+import lavenderBackground from '../../../assets/background/favv1.png';
 
 const EMPTY_CONTENT = {
   type: 'doc',
@@ -1274,7 +1274,7 @@ export default function NoteEditor() {
         aria-hidden="true"
         className="
           pointer-events-none absolute inset-0 -z-10
-          bg-white/10 dark:bg-slate-950/10
+          bg-white/30 dark:bg-slate-950/40
         "
       />
 

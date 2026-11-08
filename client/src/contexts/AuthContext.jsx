@@ -21,16 +21,21 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const lastUserIdRef = useRef(null);
 
-  const refreshProfile = useCallback(async () => {
-    try {
-      const p = await api.get('/profile');
+const refreshProfile = useCallback(async () => {
+  try {
+    const p = await api.get('/profile');
+
+    if (p) {
       setProfile(p);
       return p;
-    } catch (e) {
-      setProfile(null);
-      return null;
     }
-  }, []);
+
+    return null;
+  } catch (error) {
+    console.error('[BloomNotes] Profile refresh failed:', error);
+    return null;
+  }
+}, []);
 
   useEffect(() => {
     let mounted = true;

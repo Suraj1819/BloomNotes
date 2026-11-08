@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -6,13 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import { settingsApi, profileApi } from '../../services/index.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { useTheme } from '../../contexts/ThemeContext.jsx';
-import { Card, CardBody, CardHeader, CardTitle } from '../../components/ui/Card.jsx';
+import { Card, CardBody } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input, Field } from '../../components/ui/Input.jsx';
 import { Switch } from '../../components/ui/Switch.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { PageLoader } from '../../components/ui/Spinner.jsx';
 import { useConfirm } from '../../contexts/ConfirmContext.jsx';
+import favv1Background from '../../../assets/background/favv1.png';
 import {
   Sun,
   Moon,
@@ -32,7 +32,6 @@ import {
   CheckCircle2,
   X,
   Settings2,
-  User,
   ChevronRight,
 } from 'lucide-react';
 
@@ -44,18 +43,12 @@ const sections = [
   { id: 'security', label: 'Security', icon: ShieldCheck },
 ];
 
-const allowedAvatarTypes = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-];
-
+const allowedAvatarTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 
 function getInitials(name, email) {
-  const value = (name || email || 'U').trim();
-
-  return value
+  return (name || email || 'U')
+    .trim()
     .split(/\s+/)
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase())
@@ -71,17 +64,13 @@ function SectionHeading({ eyebrow, title, description }) {
   return (
     <div className="mb-4">
       {eyebrow && (
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent mb-1.5">
+        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
           {eyebrow}
         </p>
       )}
-
-      <h2 className="text-lg font-semibold text-text-main">
-        {title}
-      </h2>
-
+      <h2 className="text-lg font-semibold text-text-main">{title}</h2>
       {description && (
-        <p className="text-sm text-text-muted mt-1 leading-relaxed">
+        <p className="mt-1 text-sm leading-relaxed text-text-muted">
           {description}
         </p>
       )}
@@ -90,7 +79,7 @@ function SectionHeading({ eyebrow, title, description }) {
 }
 
 export default function Settings() {
-  const { profile, refreshProfile, signOut } = useAuth();
+  const { profile, refreshProfile, signOut, setProfile } = useAuth();
   const { setParentTheme } = useTheme();
   const confirm = useConfirm();
   const navigate = useNavigate();
@@ -101,11 +90,9 @@ export default function Settings() {
   const [form, setForm] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
+  const [activeSection, setActiveSection] = useState('profile');
 
-  // --------------------------------------------------
-  // Initialize profile settings
-  // --------------------------------------------------
-
+  // Initialize settings
   useEffect(() => {
     if (!profile) return;
 
@@ -127,10 +114,37 @@ export default function Settings() {
     }
   }, [profile]);
 
-  // --------------------------------------------------
-  // Cleanup temporary image preview
-  // --------------------------------------------------
+  // Active sidebar section observer
+  useEffect(() => {
+    const elements = sections
+      .map(({ id }) => document.getElementById(`settings-${id}`))
+      .filter(Boolean);
 
+    if (!elements.length) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+        if (visible[0]) {
+          setActiveSection(
+            visible[0].target.id.replace('settings-', '')
+          );
+        }
+      },
+      {
+        rootMargin: '-18% 0px -62% 0px',
+        threshold: [0, 0.1, 0.25, 0.5],
+      }
+    );
+
+    elements.forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, []);
+
+  // Cleanup temporary avatar preview
   useEffect(() => {
     return () => {
       if (avatarPreview?.startsWith('blob:')) {
@@ -139,104 +153,98 @@ export default function Settings() {
     };
   }, [avatarPreview]);
 
-  // --------------------------------------------------
-  // Save general settings
-  // --------------------------------------------------
-
+  // Save settings
   const save = useMutation({
-    mutationFn: async (values) => {
-      return settingsApi.update(values);
-    },
-
+    mutationFn: (values) => settingsApi.update(values),
     onSuccess: async () => {
       await refreshProfile();
       toast.success('Settings saved successfully.');
     },
-
     onError: (error) => {
       toast.error(error.message || 'Unable to save settings.');
     },
   });
 
-  // --------------------------------------------------
-  // Upload profile avatar
-  // --------------------------------------------------
-
+  // Avatar upload
   const avatarUpload = useMutation({
-    mutationFn: async (file) => {
-      if (!(file instanceof File)) {
-        throw new Error('Please select an avatar image.');
-      }
+  mutationFn: async (file) => {
+    if (!(file instanceof File)) {
+      throw new Error('Please select an avatar image.');
+    }
 
-      if (!allowedAvatarTypes.includes(file.type)) {
-        throw new Error('Please select a JPG, PNG or WebP image.');
-      }
+    if (!allowedAvatarTypes.includes(file.type)) {
+      throw new Error('Please select a JPG, PNG or WebP image.');
+    }
 
-      if (file.size > MAX_AVATAR_SIZE) {
-        throw new Error('Image size must be below 5 MB.');
-      }
+    if (file.size > MAX_AVATAR_SIZE) {
+      throw new Error('Image size must be below 5 MB.');
+    }
 
-      return profileApi.uploadAvatar(file);
-    },
+    return profileApi.uploadAvatar(file);
+  },
 
-    onSuccess: async () => {
-      avatarFileRef.current = null;
-      setAvatarFile(null);
+  onSuccess: async (uploadedProfile) => {
+    avatarFileRef.current = null;
+    setAvatarFile(null);
 
-      if (avatarInput.current) {
-        avatarInput.current.value = '';
-      }
+    if (avatarInput.current) {
+      avatarInput.current.value = '';
+    }
 
-      await refreshProfile();
+    // Immediately update the global profile.
+    if (uploadedProfile?.avatar_url) {
+      setProfile(uploadedProfile);
+      setAvatarPreview(uploadedProfile.avatar_url);
+    } else {
+      console.error(
+        '[BloomNotes] Avatar upload response has no avatar_url:',
+        uploadedProfile
+      );
+    }
 
-      toast.success('Profile photo uploaded successfully.');
-    },
+    // Fetch the latest profile and signed avatar URL.
+    const refreshedProfile = await refreshProfile();
 
-    onError: (error) => {
-      toast.error(error.message || 'Unable to upload profile photo.');
-    },
-  });
+    if (refreshedProfile?.avatar_url) {
+      setProfile(refreshedProfile);
+      setAvatarPreview(refreshedProfile.avatar_url);
+    } else if (!uploadedProfile?.avatar_url) {
+      toast.error('Photo uploaded, but its display URL could not be generated.');
+      return;
+    }
 
-  // --------------------------------------------------
+    toast.success('Profile photo uploaded successfully.');
+  },
+
+  onError: (error) => {
+    console.error('[BloomNotes] Avatar upload failed:', error);
+    toast.error(error.message || 'Unable to upload profile photo.');
+  },
+});
+
   // Delete account
-  // --------------------------------------------------
-
   const delAccount = useMutation({
     mutationFn: () => profileApi.remove(),
-
     onSuccess: () => {
       toast.success('Account deleted.');
       navigate('/');
     },
-
     onError: (error) => {
       toast.error(error.message || 'Unable to delete account.');
     },
   });
 
-  // --------------------------------------------------
-  // Helpers
-  // --------------------------------------------------
-
   if (!form) return <PageLoader />;
 
   const update = (patch) => {
-    setForm((previous) => ({
-      ...previous,
-      ...patch,
-    }));
+    setForm((previous) => ({ ...previous, ...patch }));
   };
 
-  // --------------------------------------------------
   // Avatar selection
-  // --------------------------------------------------
-
   const handleAvatar = (event) => {
     const file = event.target.files?.[0];
-
     if (!file) return;
 
-    // Reset input so the same image can be selected again.
     event.target.value = '';
 
     if (!allowedAvatarTypes.includes(file.type)) {
@@ -249,8 +257,11 @@ export default function Settings() {
       return;
     }
 
-    const previewUrl = URL.createObjectURL(file);
+    if (avatarPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreview);
+    }
 
+    const previewUrl = URL.createObjectURL(file);
     avatarFileRef.current = file;
     setAvatarFile(file);
     setAvatarPreview(previewUrl);
@@ -259,6 +270,10 @@ export default function Settings() {
   };
 
   const removeSelectedAvatar = () => {
+    if (avatarPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreview);
+    }
+
     avatarFileRef.current = null;
     setAvatarFile(null);
 
@@ -280,18 +295,10 @@ export default function Settings() {
     avatarUpload.mutate(file);
   };
 
-  // --------------------------------------------------
-  // Theme
-  // --------------------------------------------------
-
   const handleTheme = (theme) => {
     update({ parent_theme: theme });
     setParentTheme(theme);
   };
-
-  // --------------------------------------------------
-  // Save settings
-  // --------------------------------------------------
 
   const handleSave = () => {
     if (!form.full_name.trim()) {
@@ -301,10 +308,6 @@ export default function Settings() {
 
     save.mutate(form);
   };
-
-  // --------------------------------------------------
-  // Reset appearance
-  // --------------------------------------------------
 
   const handleReset = async () => {
     const ok = await confirm({
@@ -325,13 +328,8 @@ export default function Settings() {
     });
 
     setParentTheme('system');
-
     toast.success('Appearance settings reset.');
   };
-
-  // --------------------------------------------------
-  // Delete account
-  // --------------------------------------------------
 
   const handleDeleteAccount = async () => {
     const ok = await confirm({
@@ -342,87 +340,148 @@ export default function Settings() {
       danger: true,
     });
 
-    if (ok) {
-      delAccount.mutate();
-    }
+    if (ok) delAccount.mutate();
   };
 
   const initials = getInitials(form.full_name, profile?.email);
-
   const isAvatarUploading = avatarUpload.isPending;
   const isSaving = save.isPending;
 
   return (
-    <div className="min-h-full">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-9 pb-32">
+    <div className="relative isolate min-h-screen overflow-x-clip">
+
+      {/* Background wallpaper */}
+      <div
+        className="fixed inset-0 -z-10 pointer-events-none overflow-hidden"
+        aria-hidden="true"
+      >
+        <img
+          src={favv1Background}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-[center_32%] sm:object-center"
+        />
+        <div className="absolute inset-0 bg-[#FFF8FA]/55 dark:bg-[#130B10]/65" />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-[#E9B9C9]/20 dark:from-black/10 dark:via-transparent dark:to-[#6E304A]/20" />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-7xl px-4 pb-8 py-6 sm:px-6 sm:py-9 lg:px-8">
 
         {/* Page heading */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
-          <div>
-            <div className="flex items-center gap-2 text-xs text-text-muted mb-2">
-              <Settings2 size={14} />
-              <span>Account</span>
-              <ChevronRight size={13} />
-              <span className="text-text-main">Settings</span>
+        <div className="mb-7 rounded-[28px] border border-white/65 bg-white/55 p-5 shadow-[0_18px_55px_rgba(83,38,57,0.10)] backdrop-blur-md dark:border-white/10 dark:bg-[#21151C]/65 sm:p-7">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="mb-2 flex items-center gap-2 text-xs text-text-muted">
+                <Settings2 size={14} />
+                <span>Account</span>
+                <ChevronRight size={13} />
+                <span className="text-text-main">Settings</span>
+              </div>
+
+              <h1 className="text-3xl font-semibold tracking-tight text-text-main sm:text-4xl">
+                Settings
+              </h1>
+
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-muted sm:text-base">
+                Manage your profile, personalize your workspace and control your preferences.
+              </p>
+
+              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/65 px-4 py-2.5 text-xs font-medium text-text-main shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5">
+                <CheckCircle2 size={14} className="text-accent" />
+                Your account preferences
+              </div>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-text-main">
-              Settings
-            </h1>
-
-            <p className="text-sm text-text-muted mt-2">
-              Manage your profile, personalize your workspace and control your preferences.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-text-muted border border-border rounded-xl px-3 py-2 bg-surface self-start sm:self-auto">
-            <CheckCircle2 size={14} className="text-accent" />
-            Your account preferences
+            <Button
+              onClick={handleSave}
+              loading={isSaving}
+              disabled={isSaving}
+              className="!h-11 w-full shrink-0 !rounded-xl !border-0 !bg-gradient-to-r !from-[#B95F8C] !to-[#C9789F] !px-6 !font-semibold !text-white sm:w-auto"
+            >
+              <Save size={16} />
+              Save changes
+            </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-[210px_minmax(0,1fr)] gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-[210px_minmax(0,1fr)] lg:gap-8">
 
           {/* Sidebar */}
           <aside className="md:sticky md:top-6 md:self-start">
-            <div className="rounded-2xl border border-border bg-surface p-2">
-              <p className="px-3 pt-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
+            <div className="rounded-[24px] border border-white/70 bg-white/65 p-2.5 shadow-[0_12px_35px_rgba(83,38,57,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-[#21151C]/70">
+
+              <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                 Preferences
               </p>
 
-              <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible">
-                {sections.map(({ id, label, icon: Icon }) => (
-                  <a
-                    key={id}
-                    href={`#settings-${id}`}
-                    className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-text-muted hover:text-text-main hover:bg-highlight transition-colors whitespace-nowrap"
-                  >
-                    <Icon
-                      size={17}
-                      className="shrink-0 group-hover:text-accent transition-colors"
-                    />
+              <nav className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+                {sections.map(({ id, label, icon: Icon }) => {
+                  const isActive = activeSection === id;
 
-                    <span>{label}</span>
-                  </a>
-                ))}
+                  return (
+                    <a
+                      key={id}
+                      href={`#settings-${id}`}
+                      aria-current={isActive ? 'location' : undefined}
+                      onClick={() => setActiveSection(id)}
+                      className={`group relative flex items-center gap-3 whitespace-nowrap rounded-xl px-3 py-3 text-sm transition-all duration-200 ${
+                        isActive
+                          ? 'bg-[#F5EAF2] font-semibold text-[#A84F7D] shadow-sm dark:bg-[#553247]/45 dark:text-[#F0A9C8]'
+                          : 'text-text-muted hover:bg-white/65 hover:text-text-main dark:hover:bg-white/5'
+                      }`}
+                    >
+                      {/* Desktop active indicator */}
+                      <span
+                        aria-hidden="true"
+                        className={`absolute bottom-3 left-0 top-3 hidden w-[3px] rounded-full transition-all md:block ${
+                          isActive ? 'bg-[#C66D98]' : 'opacity-0'
+                        }`}
+                      />
+
+                      {/* Mobile active indicator */}
+                      <span
+                        aria-hidden="true"
+                        className={`absolute bottom-0 left-3 right-3 h-[3px] rounded-full transition-all md:hidden ${
+                          isActive ? 'bg-[#C66D98]' : 'opacity-0'
+                        }`}
+                      />
+
+                      <Icon
+                        size={18}
+                        className={`shrink-0 transition-colors ${
+                          isActive
+                            ? 'text-[#B85F8A] dark:text-[#F0A9C8]'
+                            : 'group-hover:text-accent'
+                        }`}
+                      />
+
+                      <span>{label}</span>
+
+                      {isActive && (
+                        <span className="ml-auto hidden text-[9px] font-bold uppercase tracking-[0.14em] text-[#B85F8A]/80 md:block dark:text-[#F0A9C8]/80">
+                          Active
+                        </span>
+                      )}
+                    </a>
+                  );
+                })}
               </nav>
 
-              <div className="hidden md:block border-t border-border mt-3 pt-3 px-3 pb-2">
-                <p className="text-xs text-text-muted leading-relaxed">
+              <div className="mt-3 hidden border-t border-border px-3 pb-2 pt-3 md:block">
+                <p className="text-xs leading-relaxed text-text-muted">
                   Customize BloomNotes to match your writing habits.
                 </p>
               </div>
             </div>
 
             {/* Account summary */}
-            <div className="hidden md:block mt-4 rounded-2xl border border-border bg-surface p-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-highlight border border-border overflow-hidden flex items-center justify-center text-sm font-semibold text-accent shrink-0">
+            <div className="mt-4 hidden rounded-[24px] border border-white/70 bg-white/65 p-4 shadow-[0_12px_35px_rgba(83,38,57,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-[#21151C]/70 md:block">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-11 w-11 aspect-square shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-highlight text-sm font-semibold text-accent shadow-md ring-2 ring-white/70 dark:ring-white/10">
                   {avatarPreview ? (
                     <img
                       src={avatarPreview}
                       alt="Profile"
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover"
                     />
                   ) : (
                     initials
@@ -430,10 +489,10 @@ export default function Settings() {
                 </div>
 
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-text-main truncate">
+                  <p className="truncate text-sm font-medium text-text-main">
                     {form.full_name || 'Your profile'}
                   </p>
-                  <p className="text-xs text-text-muted truncate">
+                  <p className="truncate text-xs text-text-muted">
                     {profile?.email || 'Account'}
                   </p>
                 </div>
@@ -453,17 +512,17 @@ export default function Settings() {
               />
 
               <Card>
-                <CardBody className="p-4 sm:p-6 space-y-6">
+                <CardBody className="space-y-6 p-4 sm:p-6">
+                  <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
 
-                  {/* Avatar area */}
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+                    {/* Circular avatar */}
                     <div className="relative shrink-0 self-start">
-                      <div className="w-24 h-24 rounded-2xl overflow-hidden bg-highlight border border-border flex items-center justify-center text-2xl font-semibold text-accent">
+                      <div className="flex h-28 w-28 aspect-square items-center justify-center overflow-hidden rounded-full border-[3px] border-white/80 bg-highlight text-2xl font-semibold text-accent shadow-xl ring-4 ring-accent/10 dark:border-white/15">
                         {avatarPreview ? (
                           <img
                             src={avatarPreview}
                             alt="Profile avatar"
-                            className="w-full h-full object-cover"
+                            className="h-full w-full object-cover"
                           />
                         ) : (
                           initials || <UserRound size={32} />
@@ -474,7 +533,7 @@ export default function Settings() {
                         type="button"
                         onClick={() => avatarInput.current?.click()}
                         disabled={isAvatarUploading}
-                        className="absolute -bottom-2 -right-2 w-9 h-9 rounded-xl bg-accent text-white flex items-center justify-center border-[3px] border-surface hover:opacity-90 disabled:opacity-50 transition-opacity"
+                        className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-surface bg-accent text-white shadow-md transition-opacity hover:opacity-90 disabled:opacity-50"
                         aria-label="Change profile photo"
                       >
                         <Camera size={15} />
@@ -489,21 +548,21 @@ export default function Settings() {
                       />
                     </div>
 
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <h3 className="text-sm font-semibold text-text-main">
                         Profile picture
                       </h3>
 
-                      <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                      <p className="mt-1 text-xs leading-relaxed text-text-muted">
                         Choose a clear image for your BloomNotes account.
                         Supported formats: JPG, PNG and WebP.
                       </p>
 
-                      <p className="text-xs text-text-muted mt-1">
+                      <p className="mt-1 text-xs text-text-muted">
                         Maximum file size: 5 MB.
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-2 mt-4">
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
@@ -531,7 +590,7 @@ export default function Settings() {
                             type="button"
                             onClick={removeSelectedAvatar}
                             disabled={isAvatarUploading}
-                            className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-red-500 px-2 py-2 disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 px-2 py-2 text-xs text-text-muted hover:text-red-500 disabled:opacity-50"
                           >
                             <X size={13} />
                             Cancel
@@ -541,19 +600,17 @@ export default function Settings() {
 
                       {avatarFile && (
                         <div className="mt-3 rounded-xl border border-border bg-highlight/50 px-3 py-2.5">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <ImagePlus size={15} className="text-accent shrink-0" />
-
+                          <div className="flex min-w-0 items-center gap-2">
+                            <ImagePlus size={15} className="shrink-0 text-accent" />
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-medium text-text-main truncate">
+                              <p className="truncate text-xs font-medium text-text-main">
                                 {avatarFile.name}
                               </p>
-                              <p className="text-[11px] text-text-muted mt-0.5">
+                              <p className="mt-0.5 text-[11px] text-text-muted">
                                 {formatFileSize(avatarFile.size)} · Ready to upload
                               </p>
                             </div>
-
-                            <CheckCircle2 size={15} className="text-accent shrink-0" />
+                            <CheckCircle2 size={15} className="shrink-0 text-accent" />
                           </div>
                         </div>
                       )}
@@ -562,7 +619,6 @@ export default function Settings() {
 
                   <div className="border-t border-border" />
 
-                  {/* Full name */}
                   <Field label="Full name">
                     <Input
                       value={form.full_name}
@@ -573,14 +629,9 @@ export default function Settings() {
                     />
                   </Field>
 
-                  {/* Email */}
                   <Field label="Email address">
-                    <Input
-                      value={profile?.email || ''}
-                      disabled
-                    />
-
-                    <p className="text-xs text-text-muted mt-1.5">
+                    <Input value={profile?.email || ''} disabled />
+                    <p className="mt-1.5 text-xs text-text-muted">
                       Your registered email address cannot be changed here.
                     </p>
                   </Field>
@@ -600,7 +651,7 @@ export default function Settings() {
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="mb-4 shrink-0 text-xs font-medium text-text-muted hover:text-accent flex items-center gap-1.5 transition-colors"
+                  className="mb-4 flex shrink-0 items-center gap-1.5 text-xs font-medium text-text-muted transition-colors hover:text-accent"
                 >
                   <RotateCcw size={13} />
                   Reset
@@ -608,15 +659,13 @@ export default function Settings() {
               </div>
 
               <Card>
-                <CardBody className="p-4 sm:p-6 space-y-6">
-
-                  {/* Theme */}
+                <CardBody className="space-y-6 p-4 sm:p-6">
                   <div>
-                    <p className="text-sm font-semibold text-text-main mb-3">
+                    <p className="mb-3 text-sm font-semibold text-text-main">
                       Color theme
                     </p>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                       {[
                         { id: 'light', label: 'Sakura Blossom', Icon: Sun },
                         { id: 'dark', label: 'Midnight Rose', Icon: Moon },
@@ -644,13 +693,12 @@ export default function Settings() {
 
                   <div className="border-t border-border" />
 
-                  {/* Floral intensity */}
                   <div>
-                    <div className="flex justify-between items-center text-sm mb-3">
+                    <div className="mb-3 flex items-center justify-between text-sm">
                       <span className="font-medium text-text-main">
                         Floral intensity
                       </span>
-                      <span className="text-xs font-medium text-text-muted tabular-nums">
+                      <span className="text-xs font-medium tabular-nums text-text-muted">
                         {form.floral_intensity}%
                       </span>
                     </div>
@@ -668,14 +716,13 @@ export default function Settings() {
                       className="w-full accent-accent"
                     />
 
-                    <p className="text-xs text-text-muted mt-2">
+                    <p className="mt-2 text-xs text-text-muted">
                       Control the intensity of decorative floral elements.
                     </p>
                   </div>
 
                   <div className="border-t border-border" />
 
-                  {/* Motion */}
                   <div className="space-y-5">
                     <Switch
                       checked={form.floating_petals}
@@ -708,7 +755,7 @@ export default function Settings() {
               />
 
               <Card>
-                <CardBody className="p-4 sm:p-6 space-y-6">
+                <CardBody className="space-y-6 p-4 sm:p-6">
                   <Switch
                     checked={form.autosave_enabled}
                     onChange={(value) =>
@@ -721,12 +768,11 @@ export default function Settings() {
                   <div className="border-t border-border" />
 
                   <div>
-                    <div className="flex justify-between text-sm mb-3">
+                    <div className="mb-3 flex justify-between text-sm">
                       <span className="font-medium text-text-main">
                         Editor font size
                       </span>
-
-                      <span className="text-xs text-text-muted tabular-nums">
+                      <span className="text-xs tabular-nums text-text-muted">
                         {form.editor_font_size}px
                       </span>
                     </div>
@@ -775,7 +821,7 @@ export default function Settings() {
               />
 
               <Card>
-                <CardBody className="p-4 sm:p-6 space-y-5">
+                <CardBody className="space-y-5 p-4 sm:p-6">
                   <Switch
                     checked={form.notif_reminders}
                     onChange={(value) =>
@@ -808,7 +854,7 @@ export default function Settings() {
               />
 
               <Card>
-                <CardBody className="p-4 sm:p-6 space-y-4">
+                <CardBody className="space-y-4 p-4 sm:p-6">
                   {[
                     'Sessions expire after 24 hours of inactivity.',
                     'Database tables use Row Level Security.',
@@ -818,20 +864,20 @@ export default function Settings() {
                     <div key={item} className="flex items-start gap-3">
                       <ShieldCheck
                         size={16}
-                        className="text-accent shrink-0 mt-0.5"
+                        className="mt-0.5 shrink-0 text-accent"
                       />
-                      <p className="text-sm text-text-muted leading-relaxed">
+                      <p className="text-sm leading-relaxed text-text-muted">
                         {item}
                       </p>
                     </div>
                   ))}
 
-                  <div className="border-t border-border pt-5 mt-2">
-                    <h3 className="text-sm font-semibold text-text-main mb-1">
+                  <div className="mt-2 border-t border-border pt-5">
+                    <h3 className="mb-1 text-sm font-semibold text-text-main">
                       Account actions
                     </h3>
 
-                    <p className="text-xs text-text-muted mb-4">
+                    <p className="mb-4 text-xs text-text-muted">
                       Manage your current session or permanently delete your account.
                     </p>
 
@@ -859,11 +905,10 @@ export default function Settings() {
             </section>
 
             {/* Footer */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 py-3">
+            <div className="flex flex-col items-center justify-between gap-2 py-3 sm:flex-row">
               <p className="text-xs text-text-muted">
                 BloomNotes · Your personal writing space
               </p>
-
               <p className="text-xs text-text-muted">
                 Your preferences are saved to your account.
               </p>
@@ -872,40 +917,6 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Fixed save bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-surface/95 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="hidden sm:block min-w-0">
-              <p className="text-sm font-medium text-text-main">
-                Settings
-              </p>
-              <p className="text-xs text-text-muted">
-                Save your preference changes.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 ml-auto">
-              <Button
-                variant="outline"
-                onClick={() => navigate(-1)}
-                disabled={isSaving}
-              >
-                Cancel
-              </Button>
-
-              <Button
-                onClick={handleSave}
-                loading={isSaving}
-                disabled={isSaving}
-              >
-                <Save size={15} />
-                Save changes
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

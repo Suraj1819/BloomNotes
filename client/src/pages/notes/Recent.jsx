@@ -22,7 +22,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 
-import lavenderBg from '../../../assets/background/lavender.png';
+import lavenderBg from '../../../assets/background/favv.png';
 
 export default function Recent() {
   const navigate = useNavigate();

@@ -38,8 +38,8 @@ import {
 
 import { useConfirm } from '../../contexts/ConfirmContext.jsx';
 
-import lavenderBg from '../../../assets/background/lavender.png';
-import noteFlower from '../../../assets/background/note-card-flower.png';
+import lavenderBg from '../../../assets/background/favv.png';
+import noteCardBackground from '../../../assets/background/notecard.png';
 
 export default function FoldersPage() {
   const navigate = useNavigate();
@@ -232,7 +232,7 @@ export default function FoldersPage() {
       }}
     >
       {/* Background overlay */}
-      <div className="pointer-events-none absolute inset-0 bg-white/20 dark:bg-black/20" />
+      <div className="pointer-events-none absolute inset-0 bg-white/20 dark:bg-black/80" />
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
 
@@ -422,14 +422,20 @@ export default function FoldersPage() {
                       }}
                     />
 
-                    {/* Floral decoration */}
+                    {/* Full-card NoteCard floral background */}
                     <div
                       aria-hidden="true"
-                      className="pointer-events-none absolute bottom-0 right-0 z-0 h-40 w-40 bg-contain bg-right-bottom bg-no-repeat opacity-[0.18] dark:opacity-[0.10] transition-transform duration-500 group-hover:scale-105"
-                      style={{
-                        backgroundImage: `url(${noteFlower})`,
-                      }}
-                    />
+                      className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[22px]"
+                    >
+                      <img
+                        src={noteCardBackground}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.82] dark:opacity-[0.22]"
+                      />
+                      <div className="absolute inset-0 bg-white/25 dark:hidden" />
+                      <div className="absolute inset-0 hidden bg-[#241820]/75 dark:block" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-rose-100/20 dark:from-rose-950/10 dark:via-transparent dark:to-black/10" />
+                    </div>
 
                     {/* Accent glow */}
                     <div

@@ -199,7 +199,7 @@ export default function AllNotes() {
     >
       {/* Background overlay */}
 
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-white/20 dark:bg-slate-950/25" />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-white/30 dark:bg-slate-950/80" />
 
       <main className="relative mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 lg:px-9 lg:py-9">
 

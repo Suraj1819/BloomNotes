@@ -24,7 +24,7 @@ import {
   CalendarDays,
 } from 'lucide-react';
 
-import lavenderBg from '../../../assets/background/lavender.png';
+import favvBg from '../../../assets/background/favv.png';
 
 function toLocalInput(iso) {
   if (!iso) return '';
@@ -176,34 +176,37 @@ export default function Reminders() {
     <div
       className="relative min-h-full overflow-hidden"
       style={{
-        backgroundImage: `url(${lavenderBg})`,
+        backgroundImage: `url(${favvBg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
       }}
     >
-      <div className="pointer-events-none absolute inset-0 bg-white/55 dark:bg-black/45" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[#FFF9FB]/45 dark:bg-[#160D12]/65"
+      />
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
 
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F1E8FF] text-[#6240C8] dark:bg-purple-950/50 dark:text-purple-400">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F9E8EE] text-[#B85C78] dark:bg-rose-950/45 dark:text-rose-300">
               <Bell size={23} />
             </div>
 
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[#10123D] dark:text-slate-100 sm:text-3xl">
+              <h1 className="text-2xl font-bold tracking-tight text-[#38242D] dark:text-slate-100 sm:text-3xl">
                 Reminders
               </h1>
 
-              <p className="mt-1 text-sm text-[#51418F] dark:text-slate-400">
+              <p className="mt-1 text-sm text-[#8D596B] dark:text-slate-400">
                 Keep track of important tasks and upcoming events.
               </p>
 
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                <span className="rounded-full border border-[#E8D8FF] bg-white/70 px-2.5 py-1 font-medium text-[#7052B5] dark:border-white/10 dark:bg-gray-900/60 dark:text-purple-300">
+                <span className="rounded-full border border-[#F0D7E0] bg-white/75 px-2.5 py-1 font-medium text-[#A65370] dark:border-rose-300/15 dark:bg-[#2A1A22]/75 dark:text-rose-200">
                   {upcoming.length} upcoming
                 </span>
 
@@ -252,8 +255,8 @@ export default function Reminders() {
             title="Upcoming"
             subtitle="Things you need to remember"
             icon={Clock}
-            iconClass="text-[#7652C8]"
-            color="purple"
+            iconClass="text-[#B85C78]"
+            color="rose"
             items={upcoming}
             onDone={(r) =>
               update.mutate({
@@ -308,18 +311,18 @@ export default function Reminders() {
         }
       >
         <div className="space-y-4">
-          <div className="rounded-2xl border border-[#E8D8FF] bg-[#F8F4FF]/80 p-4 dark:border-purple-400/15 dark:bg-purple-950/25">
+          <div className="rounded-2xl border border-[#E8D8FF] bg-[#FFF6F8]/85 p-4 dark:border-rose-300/15 dark:bg-rose-950/20">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#7652C8] shadow-sm dark:bg-slate-800 dark:text-purple-300">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#B85C78] shadow-sm dark:bg-slate-800 dark:text-rose-300">
                 <CalendarClock size={19} />
               </div>
 
               <div>
-                <p className="text-sm font-semibold text-[#35265D] dark:text-slate-100">
+                <p className="text-sm font-semibold text-[#56313F] dark:text-slate-100">
                   Plan your next task
                 </p>
 
-                <p className="mt-0.5 text-xs text-[#766A91] dark:text-slate-400">
+                <p className="mt-0.5 text-xs text-[#9B7883] dark:text-slate-400">
                   Set a time and keep important things on track.
                 </p>
               </div>
@@ -387,8 +390,8 @@ function Section({
   title,
   subtitle,
   icon: Icon,
-  iconClass = 'text-[#7652C8]',
-  color = 'purple',
+  iconClass = 'text-[#B85C78]',
+  color = 'rose',
   items,
   onDone,
   onDelete,
@@ -397,10 +400,10 @@ function Section({
   deletePending = false,
 }) {
   const styles = {
-    purple: {
-      iconBg: 'bg-[#F1E8FF] dark:bg-purple-950/50',
-      count: 'border-[#E8D8FF] bg-white/70 text-[#7052B5] dark:border-white/10 dark:bg-gray-900/60 dark:text-purple-300',
-      accent: 'border-l-[#A78BFA]',
+    rose: {
+      iconBg: 'bg-[#F9E8EE] dark:bg-rose-950/45',
+      count: 'border-[#F0D7E0] bg-white/75 text-[#A65370] dark:border-rose-300/15 dark:bg-[#2A1A22]/75 dark:text-rose-200',
+      accent: 'border-l-[#C77C93]',
     },
     red: {
       iconBg: 'bg-red-50 dark:bg-red-950/40',
@@ -418,17 +421,17 @@ function Section({
 
   return (
     <section>
-      <div className="mb-4 flex items-center gap-3 border-b border-[#E8D8FF] pb-3 dark:border-slate-700">
+      <div className="mb-4 flex items-center gap-3 border-b border-[#EED5DD] pb-3 dark:border-[#60404B]">
         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${style.iconBg}`}>
           <Icon size={17} className={iconClass} />
         </div>
 
         <div>
-          <h2 className="text-lg font-bold text-[#10123D] dark:text-slate-100">
+          <h2 className="text-lg font-bold text-[#38242D] dark:text-slate-100">
             {title}
           </h2>
 
-          <p className="mt-0.5 text-sm text-[#51418F] dark:text-slate-400">
+          <p className="mt-0.5 text-sm text-[#8D596B] dark:text-slate-400">
             {subtitle}
           </p>
         </div>
@@ -439,12 +442,12 @@ function Section({
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-[22px] border border-dashed border-[#DCCCF5] bg-white/45 px-5 py-9 text-center backdrop-blur-md dark:border-white/10 dark:bg-slate-900/30">
+        <div className="rounded-[22px] border border-dashed border-[#E8C9D4] bg-white/55 px-5 py-9 text-center backdrop-blur-md dark:border-white/10 dark:bg-slate-900/30">
           <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 dark:bg-gray-800">
             <Icon size={18} className={iconClass} />
           </div>
 
-          <p className="text-sm text-[#766A91] dark:text-slate-400">
+          <p className="text-sm text-[#9B7883] dark:text-slate-400">
             {empty}
           </p>
         </div>
@@ -482,9 +485,9 @@ function ReminderCard({
 
   return (
     <article
-      className={`group relative isolate flex min-h-[205px] flex-col overflow-hidden rounded-[22px] border border-l-[3px] ${accent} border-[#E8D8FF] bg-white/80 shadow-[0_4px_12px_rgba(91,55,150,0.08)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-[#CDA8FF] hover:shadow-[0_12px_28px_rgba(91,55,150,0.14)] dark:border-slate-700 dark:bg-slate-900/75 dark:hover:border-purple-400/40`}
+      className={`group relative isolate flex min-h-[205px] flex-col overflow-hidden rounded-[22px] border border-l-[3px] ${accent} border-[#F0D7E0] bg-white/78 shadow-[0_6px_22px_rgba(137,67,91,0.10)] backdrop-blur-md transition-all duration-300 hover:border-[#D99AAD] hover:shadow-[0_12px_28px_rgba(137,67,91,0.14)] dark:border-[#60404B] dark:bg-[#281B22]/85 dark:hover:border-rose-300/30`}
     >
-      <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-purple-100/40 blur-3xl dark:bg-purple-500/10" />
+      <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-rose-100/45 blur-3xl dark:bg-rose-400/10" />
 
       <div className="relative z-10 flex flex-1 flex-col p-4 sm:p-5">
 
@@ -495,7 +498,7 @@ function ReminderCard({
               ? 'bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-300'
               : isDone
                 ? 'bg-green-50 text-green-600 dark:bg-green-950/40 dark:text-green-300'
-                : 'bg-[#F1E8FF] text-[#7652C8] dark:bg-purple-950/50 dark:text-purple-300'
+                : 'bg-[#F9E8EE] text-[#B85C78] dark:bg-rose-950/45 dark:text-rose-300'
           }`}>
             {isDone ? <Check size={20} /> : <CalendarClock size={20} />}
           </div>
@@ -520,7 +523,7 @@ function ReminderCard({
               disabled={deletePending}
               title="Delete reminder"
               aria-label="Delete reminder"
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-[#8A7DA4] transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-[#987D86] transition hover:bg-red-50 hover:text-red-500 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
             >
               <Trash2 size={16} />
             </button>
@@ -529,7 +532,7 @@ function ReminderCard({
 
         {/* Title */}
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <h3 className="min-w-0 break-words text-base font-bold leading-snug text-[#10123D] dark:text-slate-100">
+          <h3 className="min-w-0 break-words text-base font-bold leading-snug text-[#38242D] dark:text-slate-100">
             {reminder.title || 'Untitled reminder'}
           </h3>
 
@@ -547,30 +550,30 @@ function ReminderCard({
         </div>
 
         {/* Description */}
-        <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-[#51418F] dark:text-slate-300">
+        <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-[#8D596B] dark:text-slate-300">
           {reminder.description || 'A reminder to keep an important moment on track.'}
         </p>
 
         {/* Footer */}
-        <div className="mt-auto space-y-3 border-t border-[#EDE2FA] pt-3 dark:border-slate-700">
+        <div className="mt-auto space-y-3 border-t border-[#EED5DD] pt-3 dark:border-slate-700">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F6F1FF] text-[#7652C8] dark:bg-purple-950/40 dark:text-purple-300">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FBEFF2] text-[#B85C78] dark:bg-rose-950/40 dark:text-rose-300">
               <CalendarDays size={15} />
             </div>
 
             <div className="min-w-0">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-[#9385AE] dark:text-slate-500">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-[#A98B96] dark:text-slate-500">
                 Scheduled for
               </p>
 
-              <p className="truncate text-xs font-semibold text-[#51418F] dark:text-slate-300">
+              <p className="truncate text-xs font-semibold text-[#8D596B] dark:text-slate-300">
                 {formatReminderDate(reminder.remind_at)}
               </p>
             </div>
           </div>
 
           {reminder.note_id && (
-            <div className="flex items-center gap-1.5 text-xs font-medium text-[#7652C8] dark:text-purple-300">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-[#B85C78] dark:text-rose-300">
               <FileText size={13} />
               Linked note
             </div>

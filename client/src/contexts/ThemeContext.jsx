@@ -10,17 +10,7 @@ import {
 
 import { useAuth } from './AuthContext.jsx';
 
-
-// ======================================================
-// THEME CONTEXT
-// ======================================================
-
 const ThemeContext = createContext(null);
-
-
-// ======================================================
-// THEME CONFIGURATION
-// ======================================================
 
 const PARENT_THEMES = ['light', 'dark', 'system'];
 
@@ -40,15 +30,11 @@ const DARK_NOTE_THEMES = [
   'moonlit_garden',
 ];
 
-
-// ======================================================
-// VALIDATION
-// ======================================================
-
+// Default theme is LIGHT, never SYSTEM.
 function getValidParentTheme(theme) {
   return PARENT_THEMES.includes(theme)
     ? theme
-    : 'system';
+    : 'light';
 }
 
 function getValidNoteTheme(theme) {
@@ -59,17 +45,13 @@ function getValidNoteTheme(theme) {
     : null;
 }
 
-
-// ======================================================
-// SYSTEM THEME
-// ======================================================
-
+// Device theme detection.
+// Used only when the user explicitly selects SYSTEM.
 function getSystemTheme() {
-  if (typeof window === 'undefined') {
-    return 'light';
-  }
-
-  if (typeof window.matchMedia !== 'function') {
+  if (
+    typeof window === 'undefined' ||
+    typeof window.matchMedia !== 'function'
+  ) {
     return 'light';
   }
 
@@ -80,71 +62,55 @@ function getSystemTheme() {
     : 'light';
 }
 
-
-// ======================================================
-// APPLY THEME TO DOCUMENT
-// ======================================================
-
+// Apply theme to document.
 function applyDocumentTheme(theme, noteTheme = null) {
   if (typeof document === 'undefined') return;
 
   const root = document.documentElement;
 
-  // Set active note theme.
   if (noteTheme) {
     root.setAttribute('data-note-theme', noteTheme);
   } else {
     root.removeAttribute('data-note-theme');
   }
 
-  // Set resolved light/dark theme.
   root.setAttribute('data-theme', theme);
 
-  // Tailwind dark mode compatibility.
   root.classList.toggle('dark', theme === 'dark');
 
-  // Browser native controls compatibility.
   root.style.colorScheme = theme;
 }
-
-
-// ======================================================
-// THEME PROVIDER
-// ======================================================
 
 export function ThemeProvider({ children }) {
   const { profile } = useAuth();
 
-
-  // ----------------------------------------------------
+  // --------------------------------------------------
   // PARENT THEME
-  // ----------------------------------------------------
+  // Default: LIGHT
+  // --------------------------------------------------
 
   const [parentTheme, setParentThemeState] = useState(() =>
     getValidParentTheme(profile?.parent_theme)
   );
 
-
-  // ----------------------------------------------------
+  // --------------------------------------------------
   // ACTIVE NOTE THEME
-  // ----------------------------------------------------
+  // --------------------------------------------------
 
   const [activeNoteTheme, setActiveNoteThemeState] =
     useState(null);
 
-
-  // ----------------------------------------------------
+  // --------------------------------------------------
   // SYSTEM THEME
-  // ----------------------------------------------------
+  // --------------------------------------------------
 
   const [systemTheme, setSystemTheme] = useState(
     getSystemTheme
   );
 
-
-  // ====================================================
+  // --------------------------------------------------
   // 1. LISTEN TO SYSTEM THEME CHANGES
-  // ====================================================
+  // --------------------------------------------------
 
   useEffect(() => {
     if (
@@ -164,12 +130,10 @@ export function ThemeProvider({ children }) {
       );
     };
 
-    // Initial synchronization.
     setSystemTheme(
       mediaQuery.matches ? 'dark' : 'light'
     );
 
-    // Modern browser.
     if (mediaQuery.addEventListener) {
       mediaQuery.addEventListener(
         'change',
@@ -184,35 +148,30 @@ export function ThemeProvider({ children }) {
       };
     }
 
-    // Older browser fallback.
-    mediaQuery.addListener(
-      handleSystemThemeChange
-    );
+    mediaQuery.addListener(handleSystemThemeChange);
 
     return () => {
-      mediaQuery.removeListener(
-        handleSystemThemeChange
-      );
+      mediaQuery.removeListener(handleSystemThemeChange);
     };
   }, []);
 
-
-  // ====================================================
-  // 2. SYNC PARENT THEME FROM PROFILE
-  // ====================================================
+  // --------------------------------------------------
+  // 2. SYNC THEME FROM USER PROFILE
+  // Only valid saved preferences are applied.
+  // --------------------------------------------------
 
   useEffect(() => {
-    if (profile?.parent_theme) {
-      setParentThemeState(
-        getValidParentTheme(profile.parent_theme)
-      );
+    if (
+      profile?.parent_theme &&
+      PARENT_THEMES.includes(profile.parent_theme)
+    ) {
+      setParentThemeState(profile.parent_theme);
     }
   }, [profile?.parent_theme]);
 
-
-  // ====================================================
+  // --------------------------------------------------
   // 3. RESOLVE PARENT THEME
-  // ====================================================
+  // --------------------------------------------------
 
   const resolvedParent = useMemo(() => {
     if (parentTheme === 'system') {
@@ -222,10 +181,9 @@ export function ThemeProvider({ children }) {
     return parentTheme;
   }, [parentTheme, systemTheme]);
 
-
-  // ====================================================
+  // --------------------------------------------------
   // 4. RESOLVE ACTIVE THEME
-  // ====================================================
+  // --------------------------------------------------
 
   const resolvedTheme = useMemo(() => {
     if (!activeNoteTheme) {
@@ -237,10 +195,9 @@ export function ThemeProvider({ children }) {
       : 'light';
   }, [activeNoteTheme, resolvedParent]);
 
-
-  // ====================================================
-  // 5. APPLY THEME TO HTML
-  // ====================================================
+  // --------------------------------------------------
+  // 5. APPLY THEME TO DOCUMENT
+  // --------------------------------------------------
 
   useEffect(() => {
     applyDocumentTheme(
@@ -249,10 +206,9 @@ export function ThemeProvider({ children }) {
     );
   }, [resolvedTheme, activeNoteTheme]);
 
-
-  // ====================================================
+  // --------------------------------------------------
   // 6. REDUCED MOTION
-  // ====================================================
+  // --------------------------------------------------
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -261,10 +217,9 @@ export function ThemeProvider({ children }) {
       String(Boolean(profile?.reduced_motion));
   }, [profile?.reduced_motion]);
 
-
-  // ====================================================
+  // --------------------------------------------------
   // 7. EDITOR FONT SIZE
-  // ====================================================
+  // --------------------------------------------------
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -286,65 +241,50 @@ export function ThemeProvider({ children }) {
     );
   }, [profile?.editor_font_size]);
 
-
-  // ====================================================
+  // --------------------------------------------------
   // 8. CHANGE PARENT THEME
-  // ====================================================
+  // --------------------------------------------------
 
   const setParentTheme = useCallback((theme) => {
-    const validTheme = getValidParentTheme(theme);
-
-    setParentThemeState(validTheme);
+    setParentThemeState(
+      getValidParentTheme(theme)
+    );
   }, []);
 
-
-  // ====================================================
+  // --------------------------------------------------
   // 9. ACTIVATE NOTE THEME
-  // ====================================================
+  // --------------------------------------------------
 
   const setActiveNoteTheme = useCallback((theme) => {
-    const validTheme = getValidNoteTheme(theme);
-
-    setActiveNoteThemeState(validTheme);
+    setActiveNoteThemeState(
+      getValidNoteTheme(theme)
+    );
   }, []);
 
-
-  // ====================================================
+  // --------------------------------------------------
   // 10. CLEAR NOTE THEME
-  // ====================================================
+  // --------------------------------------------------
 
   const clearActiveNoteTheme = useCallback(() => {
     setActiveNoteThemeState(null);
   }, []);
 
-
-  // ====================================================
+  // --------------------------------------------------
   // 11. CONTEXT VALUE
-  // ====================================================
+  // --------------------------------------------------
 
   const value = useMemo(() => ({
-    // User preference.
     parentTheme,
-
     setParentTheme,
 
-    // Actual resolved parent preference.
     resolvedParent,
-
-    // Current theme applied to the application.
     resolvedTheme,
-
-    // Device preference.
     systemTheme,
 
-    // Active note theme.
     activeNoteTheme,
-
     setActiveNoteTheme,
-
     clearActiveNoteTheme,
 
-    // Theme information.
     isDark: resolvedTheme === 'dark',
     isLight: resolvedTheme === 'light',
 
@@ -353,7 +293,6 @@ export function ThemeProvider({ children }) {
 
     availableParentThemes: PARENT_THEMES,
     availableNoteThemes: NOTE_THEMES,
-
   }), [
     parentTheme,
     setParentTheme,
@@ -365,11 +304,6 @@ export function ThemeProvider({ children }) {
     clearActiveNoteTheme,
   ]);
 
-
-  // ====================================================
-  // PROVIDER
-  // ====================================================
-
   return (
     <ThemeContext.Provider value={value}>
       {children}
@@ -377,10 +311,9 @@ export function ThemeProvider({ children }) {
   );
 }
 
-
-// ======================================================
+// ------------------------------------------------------
 // USE THEME HOOK
-// ======================================================
+// ------------------------------------------------------
 
 export function useTheme() {
   const context = useContext(ThemeContext);

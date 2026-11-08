@@ -31,7 +31,7 @@ import {
 
 import { extractTextFromContent } from '../../lib/utils.js';
 
-import lavenderBg from '../../../assets/background/lavender.png';
+import lavenderBg from '../../../assets/background/favv1.png';
 
 export default function FolderView() {
   const { id } = useParams();
@@ -129,7 +129,7 @@ export default function FolderView() {
           backgroundPosition: 'center',
         }}
       >
-        <div className="pointer-events-none absolute inset-0 bg-white/40 dark:bg-black/40" />
+        <div className="pointer-events-none absolute inset-0 bg-white/20 dark:bg-black/80" />
 
         <div className="relative z-10 mx-4 w-full max-w-md rounded-[24px] border border-border/60 bg-card/80 p-8 text-center shadow-lg backdrop-blur-xl">
 

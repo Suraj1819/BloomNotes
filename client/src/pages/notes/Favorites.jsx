@@ -63,7 +63,7 @@ export default function Favorites() {
       }}
     >
       {/* Background overlay */}
-      <div className="pointer-events-none absolute inset-0 bg-white/40 dark:bg-black/10" />
+      <div className="pointer-events-none absolute inset-0 bg-white/40 dark:bg-black/80" />
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
 

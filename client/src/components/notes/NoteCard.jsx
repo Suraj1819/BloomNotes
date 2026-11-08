@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -27,7 +26,9 @@ import {
   cn,
 } from '../../lib/utils.js';
 
-import noteFlower from '../../../assets/background/note-card-flower.png';
+// Place your generated floral notecard image at:
+// src/assets/background/notecrad.png
+import noteCardBackground from '../../../assets/background/notecard.png';
 
 export function NoteCard({ note }) {
   const navigate = useNavigate();
@@ -39,18 +40,16 @@ export function NoteCard({ note }) {
   const menuRef = useRef(null);
 
   const theme = getThemeMeta(note.theme_id);
-  const accent = theme?.swatch || '#9875C9';
+  const accent = theme?.swatch || '#C66F8D';
   const themeName = theme?.name || 'Personal';
 
   const title = note.title?.trim() || 'Untitled note';
 
-  // Get complete note text
   const fullContent =
     extractTextFromContent(note.content || '') ||
     note.excerpt ||
     'No additional content yet. Open this note to add your thoughts.';
 
-  // Show More / Show Less
   const needsExpansion = fullContent.length > 180;
 
   const displayedExcerpt =
@@ -72,7 +71,6 @@ export function NoteCard({ note }) {
     qc.invalidateQueries({ queryKey: ['notes'] });
   };
 
-  // Favorite mutation
   const fav = useMutation({
     mutationFn: () => notesApi.toggleFavorite(note.id),
     onSuccess: () => {
@@ -88,7 +86,6 @@ export function NoteCard({ note }) {
     },
   });
 
-  // Pin mutation
   const pin = useMutation({
     mutationFn: () =>
       note.is_pinned
@@ -105,7 +102,6 @@ export function NoteCard({ note }) {
     },
   });
 
-  // Duplicate mutation
   const duplicate = useMutation({
     mutationFn: () => notesApi.duplicate(note.id),
     onSuccess: () => {
@@ -118,7 +114,6 @@ export function NoteCard({ note }) {
     },
   });
 
-  // Delete mutation
   const remove = useMutation({
     mutationFn: () => notesApi.remove(note.id),
     onSuccess: () => {
@@ -137,7 +132,6 @@ export function NoteCard({ note }) {
     duplicate.isPending ||
     remove.isPending;
 
-  // Close menu on outside click and Escape
   useEffect(() => {
     const handleOutsideClick = (event) => {
       if (
@@ -170,15 +164,36 @@ export function NoteCard({ note }) {
     <article
       className={cn(
         'relative isolate flex min-h-[285px] min-w-0 flex-col overflow-visible',
-        'rounded-[22px] border border-border/60',
-        'bg-card/70 backdrop-blur-xl',
-        'shadow-[0_6px_24px_rgba(35,25,65,0.07)]',
-        'transition-[border-color,box-shadow] duration-200',
-        'hover:border-accent/35',
-        'hover:shadow-[0_10px_30px_rgba(35,25,65,0.11)]'
+        'rounded-[22px] border border-rose-200/70 dark:border-rose-300/15',
+        'bg-[#FFF8FA]/75 dark:bg-[#241820]/95',
+        'shadow-[0_8px_28px_rgba(137,67,91,0.10)]',
+        'transition-[border-color,box-shadow,transform] duration-200',
+        'hover:-translate-y-0.5 hover:border-rose-300/80',
+        'hover:shadow-[0_14px_34px_rgba(137,67,91,0.15)]',
+        'dark:hover:border-rose-300/25 dark:hover:shadow-[0_14px_34px_rgba(0,0,0,0.28)]'
       )}
     >
-      {/* Left accent stripe */}
+      {/* Full-card floral artwork. The image stays behind all content. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[22px]"
+      >
+        <img
+          src={noteCardBackground}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.88] dark:opacity-[0.24]"
+        />
+
+        {/* Light-mode veil keeps text readable without hiding the flowers. */}
+        <div className="absolute inset-0 bg-white/25 dark:hidden" />
+
+        {/* Dark-mode tint preserves the same artwork in Midnight Rose. */}
+        <div className="absolute inset-0 hidden bg-[#241820]/75 dark:block" />
+
+        <div className="absolute inset-0 bg-gradient-to-br from-white/70 via-transparent to-rose-100/20 dark:from-rose-950/10 dark:via-transparent dark:to-black/10" />
+      </div>
+
+      {/* Theme accent stripe */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute left-0 top-[22%] z-20 h-[56%] w-[4px] rounded-r-full"
@@ -188,30 +203,20 @@ export function NoteCard({ note }) {
         }}
       />
 
-      {/* Soft background decoration */}
+      {/* Soft theme glow */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 right-0 z-0 h-40 w-40 bg-contain bg-right-bottom bg-no-repeat opacity-[0.18] dark:opacity-[0.10]"
-        style={{
-          backgroundImage: `url(${noteFlower})`,
-        }}
-      />
-
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute right-0 top-0 z-0 h-36 w-36 rounded-full opacity-20 blur-3xl"
+        className="pointer-events-none absolute right-0 top-0 z-[1] h-36 w-36 rounded-full opacity-20 blur-3xl"
         style={{ backgroundColor: accent }}
       />
 
       {/* Card content */}
       <div className="relative z-10 flex flex-1 flex-col p-5 pl-6 sm:p-6 sm:pl-7">
-
         {/* Header */}
         <div className="mb-6 flex items-center justify-between gap-3">
-
           <div className="flex min-w-0 items-center gap-3">
             <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/60 shadow-sm dark:border-white/10"
               style={{
                 color: accent,
                 backgroundColor: `${accent}18`,
@@ -235,18 +240,17 @@ export function NoteCard({ note }) {
                 </span>
               </div>
 
-              <p className="mt-1 text-[11px] text-text-muted">
+              <p className="mt-1 text-[11px] text-[#806D76] dark:text-[#C5B2BA]">
                 Personal collection
               </p>
             </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-
             {note.is_pinned && (
               <span
                 title="Pinned"
-                className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/10 text-accent"
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-100/80 text-rose-600 dark:bg-rose-400/15 dark:text-rose-300"
               >
                 <Pin size={15} fill="currentColor" />
               </span>
@@ -261,10 +265,7 @@ export function NoteCard({ note }) {
               </span>
             )}
 
-            <div
-              className="relative"
-              ref={menuRef}
-            >
+            <div className="relative" ref={menuRef}>
               <button
                 type="button"
                 aria-label="More note options"
@@ -276,15 +277,14 @@ export function NoteCard({ note }) {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 top-11 z-50 w-48 rounded-2xl border border-border/70 bg-card p-1.5 shadow-xl backdrop-blur-xl">
-
+                <div className="absolute right-0 top-11 z-50 w-48 rounded-2xl border border-rose-100 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#2B1D25]/98">
                   <button
                     type="button"
                     onClick={() => {
                       setMenuOpen(false);
                       openNote();
                     }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-text-main hover:bg-accent/10"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-[#49333D] hover:bg-rose-50 dark:text-slate-100 dark:hover:bg-white/10"
                   >
                     <ExternalLink size={15} />
                     Open note
@@ -294,7 +294,7 @@ export function NoteCard({ note }) {
                     type="button"
                     disabled={isBusy}
                     onClick={() => duplicate.mutate()}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-text-main hover:bg-accent/10 disabled:opacity-50"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-[#49333D] hover:bg-rose-50 disabled:opacity-50 dark:text-slate-100 dark:hover:bg-white/10"
                   >
                     <Copy size={15} />
                     Duplicate
@@ -309,7 +309,6 @@ export function NoteCard({ note }) {
                     <Trash2 size={15} />
                     Move to trash
                   </button>
-
                 </div>
               )}
             </div>
@@ -322,14 +321,14 @@ export function NoteCard({ note }) {
           onClick={openNote}
           className="mb-3 block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
         >
-          <h3 className="line-clamp-2 break-words text-[21px] font-bold leading-[1.4] tracking-tight text-text-main sm:text-[23px]">
+          <h3 className="line-clamp-2 break-words text-[21px] font-bold leading-[1.4] tracking-tight text-[#382832] sm:text-[23px] dark:text-[#FFF1F5]">
             {title}
           </h3>
         </button>
 
-        {/* Description with Show More */}
+        {/* Description */}
         <div className="mb-5">
-          <p className="whitespace-pre-wrap break-words text-[13px] leading-[1.85] text-text-muted sm:text-sm">
+          <p className="whitespace-pre-wrap break-words text-[13px] leading-[1.85] text-[#705D67] sm:text-sm dark:text-[#D5C5CC]">
             {displayedExcerpt}
           </p>
 
@@ -349,7 +348,6 @@ export function NoteCard({ note }) {
         {/* Tags */}
         {tags.length > 0 && (
           <div className="mb-5 flex flex-wrap items-center gap-2">
-
             {tags.slice(0, 3).map((tag, index) => {
               const name =
                 typeof tag === 'string' ? tag : tag?.name;
@@ -359,7 +357,7 @@ export function NoteCard({ note }) {
               return (
                 <span
                   key={tag.id || tag.name || index}
-                  className="max-w-[130px] truncate rounded-full px-3 py-1.5 text-[10px] font-semibold"
+                  className="max-w-[130px] truncate rounded-full border border-white/50 px-3 py-1.5 text-[10px] font-semibold dark:border-white/10"
                   style={{
                     color: accent,
                     backgroundColor: `${accent}15`,
@@ -371,30 +369,27 @@ export function NoteCard({ note }) {
             })}
 
             {tags.length > 3 && (
-              <span className="rounded-full bg-card/80 px-3 py-1.5 text-[10px] font-medium text-text-muted">
+              <span className="rounded-full bg-white/50 px-3 py-1.5 text-[10px] font-medium text-text-muted dark:bg-white/5">
                 +{tags.length - 3}
               </span>
             )}
-
           </div>
         )}
 
         {/* Footer */}
-        <div className="mt-auto flex items-center justify-between gap-2 pt-3">
-
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-rose-200/50 pt-3 dark:border-white/10">
           <div className="flex min-w-0 items-center gap-2">
             <Clock3
               size={14}
-              className="shrink-0 text-text-muted"
+              className="shrink-0 text-[#927D87] dark:text-[#BCAAB2]"
             />
 
-            <span className="truncate text-[11px] font-medium text-text-muted">
+            <span className="truncate text-[11px] font-medium text-[#806D76] dark:text-[#C5B2BA]">
               {updatedTime}
             </span>
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-
             <button
               type="button"
               disabled={isBusy}
@@ -403,7 +398,8 @@ export function NoteCard({ note }) {
               onClick={() => pin.mutate()}
               className={cn(
                 iconButton,
-                note.is_pinned && 'bg-accent/10 text-accent'
+                note.is_pinned &&
+                  'bg-rose-100/80 text-rose-600 dark:bg-rose-400/15 dark:text-rose-300'
               )}
             >
               <Pin
@@ -437,16 +433,14 @@ export function NoteCard({ note }) {
             <button
               type="button"
               onClick={openNote}
-              className="ml-1 inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              className="ml-1 inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-white shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
               style={{ backgroundColor: accent }}
             >
               Open
               <ArrowUpRight size={14} />
             </button>
-
           </div>
         </div>
-
       </div>
     </article>
   );
