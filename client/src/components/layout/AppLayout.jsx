@@ -1,6 +1,4 @@
 
-// src/components/layout/AppLayout.jsx
-
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 
@@ -24,22 +22,22 @@ export default function AppLayout() {
         backgroundSize: '100% 100%',
       }}
     >
-      {/* Background overlay */}
-      <div className="absolute inset-0 z-0 bg-white/15 dark:bg-black/25 pointer-events-none" />
+      {/* Background Overlay */}
+      <div className="pointer-events-none absolute inset-0 z-0 bg-white/15 dark:bg-black/25" />
 
       {/* Sidebar */}
       <Sidebar
         collapsed={collapsed}
-        onToggle={() => setCollapsed(!collapsed)}
+        onToggle={() => setCollapsed((prev) => !prev)}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
       />
 
       {/* Main Content */}
-      <div className="relative z-10 flex flex-1 flex-col min-w-0 min-h-0">
+      <div className="relative z-10 flex min-w-0 min-h-0 flex-1 flex-col">
         <TopBar onOpenMobile={() => setMobileOpen(true)} />
 
-        <main className="flex-1 min-h-0 overflow-y-auto">
+        <main className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>

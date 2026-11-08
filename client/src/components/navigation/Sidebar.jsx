@@ -3,6 +3,8 @@ import { NavLink } from 'react-router-dom';
 import { Logo } from '../common/Logo.jsx';
 import { cn } from '../../lib/utils.js';
 
+import sidebarBg from '../../../assets/background/sidebar41.png';
+
 import {
   LayoutDashboard,
   NotebookPen,
@@ -72,12 +74,12 @@ export function Sidebar({
         <div
           className="pointer-events-none absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: "url('/assets/background/sidebar41.png')",
+            backgroundImage: `url(${sidebarBg})`,
           }}
           aria-hidden="true"
         />
 
-        {/* Light / Dark Overlay - No Blur */}
+        {/* Light / Dark Overlay */}
         <div
           className="pointer-events-none absolute inset-0 z-0 bg-white/70 dark:bg-[#17131A]/80"
           aria-hidden="true"
