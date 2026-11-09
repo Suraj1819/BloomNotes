@@ -18,8 +18,10 @@ export default function AppLayout() {
         backgroundColor: '#f8f5ff',
         backgroundImage: `url(${lavenderBg})`,
         backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'center',
-        backgroundSize: '100% 100%',
+        backgroundPosition: 'center center',
+
+        // Preserve image aspect ratio on every screen
+        backgroundSize: 'cover',
       }}
     >
       {/* Background Overlay */}

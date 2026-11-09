@@ -165,15 +165,16 @@ export function TopBar({ onOpenMobile }) {
   // Dark mode: remove visible separator
   'dark:border-b-0',
 
-  'bg-cover bg-center bg-no-repeat',
+  'bg-center bg-no-repeat',
+'[background-size:100%_auto] sm:bg-cover',
   'shadow-[0_2px_18px_rgba(30,20,50,0.04)]',
   'dark:shadow-none'
 )}
 style={{
-        backgroundImage: `url(${topbarBg})`,
-        backgroundColor: isDark ? '#211b29' : '#fff8fc',
-        backgroundBlendMode: isDark ? 'luminosity' : 'normal',
-      }}
+  backgroundImage: `url(${topbarBg})`,
+  backgroundColor: isDark ? '#211b29' : '#fff8fc',
+  backgroundBlendMode: isDark ? 'luminosity' : 'normal',
+}}
     >
       {/* Theme-aware background overlay */}
       <div
