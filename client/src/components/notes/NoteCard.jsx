@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +14,9 @@ import {
   ExternalLink,
   ArrowUpRight,
   Sparkles,
+  Archive,
+  ArchiveRestore,
+  Loader2,
 } from 'lucide-react';
 
 import { toast } from 'sonner';
@@ -26,11 +30,9 @@ import {
   cn,
 } from '../../lib/utils.js';
 
-// Place your generated floral notecard image at:
-// src/assets/background/notecrad.png
 import noteCardBackground from '../../../assets/background/notecard.png';
 
-export function NoteCard({ note }) {
+export function NoteCard({ note, isArchived = false }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -38,6 +40,10 @@ export function NoteCard({ note }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const menuRef = useRef(null);
+
+  // ---------------------------------------------------------------------------
+  // Note information
+  // ---------------------------------------------------------------------------
 
   const theme = getThemeMeta(note.theme_id);
   const accent = theme?.swatch || '#C66F8D';
@@ -63,6 +69,10 @@ export function NoteCard({ note }) {
     ? relativeTime(note.updated_at)
     : 'Recently created';
 
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
   const openNote = () => {
     navigate(`/app/notes/${note.id}`);
   };
@@ -71,66 +81,129 @@ export function NoteCard({ note }) {
     qc.invalidateQueries({ queryKey: ['notes'] });
   };
 
+  // ---------------------------------------------------------------------------
+  // Favorite mutation
+  // ---------------------------------------------------------------------------
+
   const fav = useMutation({
     mutationFn: () => notesApi.toggleFavorite(note.id),
+
     onSuccess: () => {
       refreshNotes();
+
       toast.success(
         note.is_favorite
           ? 'Removed from favorites'
           : 'Added to favorites'
       );
     },
+
     onError: (error) => {
       toast.error(error.message || 'Could not update favorite');
     },
   });
+
+  // ---------------------------------------------------------------------------
+  // Pin mutation
+  // ---------------------------------------------------------------------------
 
   const pin = useMutation({
     mutationFn: () =>
       note.is_pinned
         ? notesApi.unpin(note.id)
         : notesApi.pin(note.id),
+
     onSuccess: () => {
       refreshNotes();
+
       toast.success(
         note.is_pinned ? 'Note unpinned' : 'Note pinned'
       );
     },
+
     onError: (error) => {
       toast.error(error.message || 'Could not update pin');
     },
   });
 
-  const duplicate = useMutation({
-    mutationFn: () => notesApi.duplicate(note.id),
+  // ---------------------------------------------------------------------------
+  // Archive / Restore mutation
+  // ---------------------------------------------------------------------------
+
+  const archive = useMutation({
+    mutationFn: () =>
+      isArchived
+        ? notesApi.unarchive(note.id)
+        : notesApi.archive(note.id),
+
     onSuccess: () => {
       refreshNotes();
       setMenuOpen(false);
+
+      toast.success(
+        isArchived
+          ? 'Note restored to your collection'
+          : 'Note moved to archive'
+      );
+    },
+
+    onError: (error) => {
+      toast.error(error.message || 'Could not update archive');
+    },
+  });
+
+  // ---------------------------------------------------------------------------
+  // Duplicate mutation
+  // ---------------------------------------------------------------------------
+
+  const duplicate = useMutation({
+    mutationFn: () => notesApi.duplicate(note.id),
+
+    onSuccess: () => {
+      refreshNotes();
+      setMenuOpen(false);
+
       toast.success('Note duplicated');
     },
+
     onError: (error) => {
       toast.error(error.message || 'Could not duplicate note');
     },
   });
 
+  // ---------------------------------------------------------------------------
+  // Trash mutation
+  // ---------------------------------------------------------------------------
+
   const remove = useMutation({
     mutationFn: () => notesApi.remove(note.id),
+
     onSuccess: () => {
       refreshNotes();
       setMenuOpen(false);
+
       toast.success('Moved to trash');
     },
+
     onError: (error) => {
       toast.error(error.message || 'Could not delete note');
     },
   });
 
+  // ---------------------------------------------------------------------------
+  // IMPORTANT: Busy state AFTER all mutation declarations
+  // ---------------------------------------------------------------------------
+
   const isBusy =
     fav.isPending ||
     pin.isPending ||
+    archive.isPending ||
     duplicate.isPending ||
     remove.isPending;
+
+  // ---------------------------------------------------------------------------
+  // Dropdown outside click and Escape
+  // ---------------------------------------------------------------------------
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -157,8 +230,39 @@ export function NoteCard({ note }) {
     };
   }, []);
 
+  // ---------------------------------------------------------------------------
+  // Reusable styles
+  // ---------------------------------------------------------------------------
+
   const iconButton =
-    'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-text-muted transition-colors duration-150 hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-40';
+    'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-text-muted transition-colors duration-150 hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-50';
+
+  const menuItem = `
+    flex w-full items-center gap-2.5
+    rounded-xl px-3 py-2.5
+    text-left text-sm font-medium
+    !text-[#49333D]
+    transition-colors
+    hover:bg-rose-50
+    focus-visible:outline-none
+    focus-visible:ring-2 focus-visible:ring-accent/30
+    dark:!text-[#F8EAF1]
+    dark:hover:bg-white/10
+    disabled:cursor-not-allowed
+    disabled:opacity-50
+  `;
+
+  const ActionSpinner = () => (
+    <Loader2
+      size={16}
+      className="shrink-0 animate-spin"
+      aria-hidden="true"
+    />
+  );
+
+  // ---------------------------------------------------------------------------
+  // Card
+  // ---------------------------------------------------------------------------
 
   return (
     <article
@@ -173,7 +277,8 @@ export function NoteCard({ note }) {
         'dark:hover:border-rose-300/25 dark:hover:shadow-[0_14px_34px_rgba(0,0,0,0.28)]'
       )}
     >
-      {/* Full-card floral artwork. The image stays behind all content. */}
+
+      {/* Floral background */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[22px]"
@@ -184,16 +289,14 @@ export function NoteCard({ note }) {
           className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.88] dark:opacity-[0.24]"
         />
 
-        {/* Light-mode veil keeps text readable without hiding the flowers. */}
         <div className="absolute inset-0 bg-white/25 dark:hidden" />
 
-        {/* Dark-mode tint preserves the same artwork in Midnight Rose. */}
         <div className="absolute inset-0 hidden bg-[#241820]/75 dark:block" />
 
         <div className="absolute inset-0 bg-gradient-to-br from-white/70 via-transparent to-rose-100/20 dark:from-rose-950/10 dark:via-transparent dark:to-black/10" />
       </div>
 
-      {/* Theme accent stripe */}
+      {/* Theme accent */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute left-0 top-[22%] z-20 h-[56%] w-[4px] rounded-r-full"
@@ -203,18 +306,21 @@ export function NoteCard({ note }) {
         }}
       />
 
-      {/* Soft theme glow */}
+      {/* Theme glow */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute right-0 top-0 z-[1] h-36 w-36 rounded-full opacity-20 blur-3xl"
         style={{ backgroundColor: accent }}
       />
 
-      {/* Card content */}
+      {/* Main content */}
       <div className="relative z-10 flex flex-1 flex-col p-5 pl-6 sm:p-6 sm:pl-7">
+
         {/* Header */}
         <div className="mb-6 flex items-center justify-between gap-3">
+
           <div className="flex min-w-0 items-center gap-3">
+
             <div
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/60 shadow-sm dark:border-white/10"
               style={{
@@ -226,6 +332,7 @@ export function NoteCard({ note }) {
             </div>
 
             <div className="min-w-0">
+
               <div className="flex items-center gap-1.5">
                 <Sparkles
                   size={11}
@@ -241,13 +348,27 @@ export function NoteCard({ note }) {
               </div>
 
               <p className="mt-1 text-[11px] text-[#806D76] dark:text-[#C5B2BA]">
-                Personal collection
+                {isArchived
+                  ? 'Archived collection'
+                  : 'Personal collection'}
               </p>
+
             </div>
           </div>
 
+          {/* Header actions */}
           <div className="flex shrink-0 items-center gap-1">
-            {note.is_pinned && (
+
+            {isArchived && (
+              <span
+                title="Archived"
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100/80 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300"
+              >
+                <Archive size={15} />
+              </span>
+            )}
+
+            {!isArchived && note.is_pinned && (
               <span
                 title="Pinned"
                 className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-100/80 text-rose-600 dark:bg-rose-400/15 dark:text-rose-300"
@@ -265,7 +386,9 @@ export function NoteCard({ note }) {
               </span>
             )}
 
+            {/* Options dropdown */}
             <div className="relative" ref={menuRef}>
+
               <button
                 type="button"
                 aria-label="More note options"
@@ -277,38 +400,117 @@ export function NoteCard({ note }) {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 top-11 z-50 w-48 rounded-2xl border border-rose-100 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#2B1D25]/98">
+                <div
+                  className="
+                    absolute right-0 top-11 z-50
+                    w-56 overflow-hidden rounded-2xl
+                    border border-rose-200/80
+                    bg-white p-1.5
+                    shadow-xl shadow-black/10
+                    dark:border-white/10
+                    dark:bg-[#251923]
+                    dark:shadow-black/40
+                  "
+                >
+
+                  {/* Open note */}
                   <button
                     type="button"
+                    disabled={isBusy}
                     onClick={() => {
                       setMenuOpen(false);
                       openNote();
                     }}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-[#49333D] hover:bg-rose-50 dark:text-slate-100 dark:hover:bg-white/10"
+                    className={menuItem}
                   >
-                    <ExternalLink size={15} />
-                    Open note
+                    <ExternalLink size={16} className="shrink-0" />
+                    <span>Open note</span>
                   </button>
 
+                  {/* Archive / Restore */}
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => archive.mutate()}
+                    className={menuItem}
+                    aria-busy={archive.isPending}
+                  >
+                    {archive.isPending ? (
+                      <ActionSpinner />
+                    ) : isArchived ? (
+                      <ArchiveRestore size={16} className="shrink-0" />
+                    ) : (
+                      <Archive size={16} className="shrink-0" />
+                    )}
+
+                    <span>
+                      {archive.isPending
+                        ? isArchived
+                          ? 'Restoring...'
+                          : 'Archiving...'
+                        : isArchived
+                          ? 'Restore to notes'
+                          : 'Move to archive'}
+                    </span>
+                  </button>
+
+                  {/* Duplicate */}
                   <button
                     type="button"
                     disabled={isBusy}
                     onClick={() => duplicate.mutate()}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-[#49333D] hover:bg-rose-50 disabled:opacity-50 dark:text-slate-100 dark:hover:bg-white/10"
+                    className={menuItem}
+                    aria-busy={duplicate.isPending}
                   >
-                    <Copy size={15} />
-                    Duplicate
+                    {duplicate.isPending ? (
+                      <ActionSpinner />
+                    ) : (
+                      <Copy size={16} className="shrink-0" />
+                    )}
+
+                    <span>
+                      {duplicate.isPending
+                        ? 'Duplicating...'
+                        : 'Duplicate'}
+                    </span>
                   </button>
 
+                  <div className="my-1.5 border-t border-rose-100 dark:border-white/10" />
+
+                  {/* Move to trash */}
                   <button
                     type="button"
                     disabled={isBusy}
                     onClick={() => remove.mutate()}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-danger hover:bg-danger/10 disabled:opacity-50"
+                    className="
+                      flex w-full items-center gap-2.5
+                      rounded-xl px-3 py-2.5
+                      text-left text-sm font-medium
+                      !text-red-600
+                      transition-colors
+                      hover:bg-red-50
+                      focus-visible:outline-none
+                      focus-visible:ring-2 focus-visible:ring-red-400/30
+                      dark:!text-red-400
+                      dark:hover:bg-red-500/10
+                      disabled:cursor-not-allowed
+                      disabled:opacity-50
+                    "
+                    aria-busy={remove.isPending}
                   >
-                    <Trash2 size={15} />
-                    Move to trash
+                    {remove.isPending ? (
+                      <ActionSpinner />
+                    ) : (
+                      <Trash2 size={16} className="shrink-0" />
+                    )}
+
+                    <span>
+                      {remove.isPending
+                        ? 'Moving to trash...'
+                        : 'Move to trash'}
+                    </span>
                   </button>
+
                 </div>
               )}
             </div>
@@ -328,6 +530,7 @@ export function NoteCard({ note }) {
 
         {/* Description */}
         <div className="mb-5">
+
           <p className="whitespace-pre-wrap break-words text-[13px] leading-[1.85] text-[#705D67] sm:text-sm dark:text-[#D5C5CC]">
             {displayedExcerpt}
           </p>
@@ -343,11 +546,13 @@ export function NoteCard({ note }) {
               {isExpanded ? 'Show Less' : 'Show More'}
             </button>
           )}
+
         </div>
 
         {/* Tags */}
         {tags.length > 0 && (
           <div className="mb-5 flex flex-wrap items-center gap-2">
+
             {tags.slice(0, 3).map((tag, index) => {
               const name =
                 typeof tag === 'string' ? tag : tag?.name;
@@ -373,12 +578,15 @@ export function NoteCard({ note }) {
                 +{tags.length - 3}
               </span>
             )}
+
           </div>
         )}
 
         {/* Footer */}
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-rose-200/50 pt-3 dark:border-white/10">
+
           <div className="flex min-w-0 items-center gap-2">
+
             <Clock3
               size={14}
               className="shrink-0 text-[#927D87] dark:text-[#BCAAB2]"
@@ -387,60 +595,80 @@ export function NoteCard({ note }) {
             <span className="truncate text-[11px] font-medium text-[#806D76] dark:text-[#C5B2BA]">
               {updatedTime}
             </span>
+
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              disabled={isBusy}
-              aria-label={note.is_pinned ? 'Unpin note' : 'Pin note'}
-              title={note.is_pinned ? 'Unpin' : 'Pin'}
-              onClick={() => pin.mutate()}
-              className={cn(
-                iconButton,
-                note.is_pinned &&
-                  'bg-rose-100/80 text-rose-600 dark:bg-rose-400/15 dark:text-rose-300'
-              )}
-            >
-              <Pin
-                size={16}
-                fill={note.is_pinned ? 'currentColor' : 'none'}
-              />
-            </button>
 
-            <button
-              type="button"
-              disabled={isBusy}
-              aria-label={
-                note.is_favorite
-                  ? 'Remove from favorites'
-                  : 'Add to favorites'
-              }
-              title={note.is_favorite ? 'Unfavorite' : 'Favorite'}
-              onClick={() => fav.mutate()}
-              className={cn(
-                iconButton,
-                note.is_favorite &&
-                  'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-              )}
-            >
-              <Star
-                size={16}
-                fill={note.is_favorite ? 'currentColor' : 'none'}
-              />
-            </button>
+            {!isArchived && (
+              <>
+                {/* Pin */}
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  aria-label={note.is_pinned ? 'Unpin note' : 'Pin note'}
+                  title={note.is_pinned ? 'Unpin' : 'Pin'}
+                  onClick={() => pin.mutate()}
+                  className={cn(
+                    iconButton,
+                    note.is_pinned &&
+                      'bg-rose-100/80 text-rose-600 dark:bg-rose-400/15 dark:text-rose-300'
+                  )}
+                >
+                  {pin.isPending ? (
+                    <ActionSpinner />
+                  ) : (
+                    <Pin
+                      size={16}
+                      fill={note.is_pinned ? 'currentColor' : 'none'}
+                    />
+                  )}
+                </button>
 
+                {/* Favorite */}
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  aria-label={
+                    note.is_favorite
+                      ? 'Remove from favorites'
+                      : 'Add to favorites'
+                  }
+                  title={note.is_favorite ? 'Unfavorite' : 'Favorite'}
+                  onClick={() => fav.mutate()}
+                  className={cn(
+                    iconButton,
+                    note.is_favorite &&
+                      'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                  )}
+                >
+                  {fav.isPending ? (
+                    <ActionSpinner />
+                  ) : (
+                    <Star
+                      size={16}
+                      fill={note.is_favorite ? 'currentColor' : 'none'}
+                    />
+                  )}
+                </button>
+              </>
+            )}
+
+            {/* Open */}
             <button
               type="button"
               onClick={openNote}
-              className="ml-1 inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-white shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+              disabled={isBusy}
+              className="ml-1 inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-white shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-50"
               style={{ backgroundColor: accent }}
             >
               Open
               <ArrowUpRight size={14} />
             </button>
+
           </div>
         </div>
+
       </div>
     </article>
   );

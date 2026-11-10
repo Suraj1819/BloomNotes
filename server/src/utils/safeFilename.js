@@ -1,38 +1,79 @@
+
 // server/src/utils/safeFilename.js
-// Sanitize a user-supplied filename to prevent path traversal.
+// Secure filename handling and flexible MIME validation.
+
 import path from 'node:path';
 
-const ALLOWED_MIME = new Set([
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'text/plain',
-  'image/png',
-  'image/jpeg',
-  'image/gif',
-  'image/webp',
-]);
-
+/**
+ * Sanitize a user-supplied filename to prevent path traversal.
+ */
 export function sanitizeFilename(name) {
-  if (!name || typeof name !== 'string') return 'file';
-  const base = path.basename(name).replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 100);
+  if (!name || typeof name !== 'string') {
+    return 'file';
+  }
+
+  const base = path
+    .basename(name)
+    .replace(/[^a-zA-Z0-9._-]+/g, '_')
+    .slice(0, 100);
+
   return base || 'file';
 }
 
+/**
+ * Allow files with any valid MIME type.
+ *
+ * Examples:
+ * application/pdf
+ * application/zip
+ * application/octet-stream
+ * audio/mpeg
+ * video/mp4
+ * image/png
+ * text/plain
+ */
 export function isAllowedMime(mime) {
-  return ALLOWED_MIME.has(mime);
+  if (!mime || typeof mime !== 'string') {
+    return false;
+  }
+
+  const normalizedMime = mime
+    .split(';')[0]
+    .trim()
+    .toLowerCase();
+
+  // Accept generic binary files and unknown file formats.
+  if (normalizedMime === 'application/octet-stream') {
+    return true;
+  }
+
+  // Validate MIME type syntax: type/subtype
+  const mimePattern =
+    /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/i;
+
+  return mimePattern.test(normalizedMime);
 }
 
+/**
+ * Storage path convention:
+ * <userId>/<fileId>/<filename>
+ */
 export function buildStoragePath(userId, fileId, filename) {
-  // Path convention: <userId>/<fileId>/<filename>
-  // The first path segment must equal the authenticated user id (RLS).
   const safeName = sanitizeFilename(filename);
+
   return `${userId}/${fileId}/${safeName}`;
 }
 
-export function assertPathOwnedBy(path, userId) {
-  const first = path.split('/')[0];
+/**
+ * Ensure the storage path belongs to the authenticated user.
+ */
+export function assertPathOwnedBy(storagePath, userId) {
+  if (!storagePath || typeof storagePath !== 'string') {
+    throw new Error('Invalid storage path');
+  }
+
+  const first = storagePath.split('/')[0];
+
   if (first !== userId) {
     throw new Error('Path traversal detected');
   }

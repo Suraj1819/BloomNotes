@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   useQuery,
   useMutation,
@@ -48,13 +48,22 @@ import {
   Sparkles,
   PenLine,
   LayoutGrid,
+  Archive,
+  ArchiveRestore,
+  ArrowDownUp,
+  RefreshCw,
+  FileText,
+  SearchX,
+  FolderOpen,
 } from 'lucide-react';
 
 import { excerptFromContent } from '../../lib/utils.js';
 import { useConfirm } from '../../contexts/ConfirmContext.jsx';
 
 import noteCardBackground from '../../../assets/background/notecard.png';
-import favvBackground from '../../../assets/background/favv1.png';
+import lavenderBackground from '../../../assets/background/fav4.png';
+
+const glass = 'bn-glass-card';
 
 const MOODS = [
   { id: 'joyful', label: 'Joyful', emoji: '😄', color: '#D97706' },
@@ -99,6 +108,7 @@ export default function Journal() {
   const [mood, setMood] = useState('calm');
   const [entryDate, setEntryDate] = useState(getToday());
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('updated');
   const [previewEntry, setPreviewEntry] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [visibleCount, setVisibleCount] = useState(6);
@@ -107,6 +117,7 @@ export default function Journal() {
     data,
     isLoading,
     isError,
+    isFetching,
     refetch,
   } = useQuery({
     queryKey: ['journal', { limit: 200 }],
@@ -251,20 +262,30 @@ export default function Journal() {
 
   const entries = data?.items || [];
 
-  const filteredEntries = entries.filter((entry) => {
+  const filteredEntries = useMemo(() => {
     const query = search.trim().toLowerCase();
+    const matched = entries.filter((entry) => {
+      if (!query) return true;
+      return (
+        String(entry.title || '').toLowerCase().includes(query) ||
+        String(entry.mood || '').toLowerCase().includes(query) ||
+        String(entry.entry_date || '').toLowerCase().includes(query) ||
+        String(excerptFromContent(entry.content) || '').toLowerCase().includes(query)
+      );
+    });
+    return [...matched].sort((a, b) => {
+      if (sort === 'title') return String(a.title || '').localeCompare(String(b.title || ''));
+      const aDate = new Date(a.entry_date || a.created_at || 0).getTime();
+      const bDate = new Date(b.entry_date || b.created_at || 0).getTime();
+      return sort === 'oldest' ? aDate - bDate : bDate - aDate;
+    });
+  }, [entries, search, sort]);
 
-    if (!query) return true;
-
-    return (
-      entry.title?.toLowerCase().includes(query) ||
-      entry.mood?.toLowerCase().includes(query) ||
-      excerptFromContent(entry.content)?.toLowerCase().includes(query)
-    );
-  });
+  useEffect(() => { setVisibleCount(6); }, [search, sort]);
 
   const isSaving = create.isPending || update.isPending;
   const visibleEntries = filteredEntries.slice(0, visibleCount);
+  const hasSearch = Boolean(search.trim());
 
   const handleSearchChange = (value) => {
     setSearch(value);
@@ -320,120 +341,125 @@ export default function Journal() {
   }
 
   return (
-    <div className="journal-page relative isolate min-h-full overflow-hidden">
-      <div aria-hidden="true" className="journal-page-backdrop pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <img
-          src={favvBackground}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover object-center"
-        />
-        <div className="absolute inset-0 bg-[#FFF8FA]/40 dark:bg-[#100A0E]/55" />
-      </div>
-      <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+    <div
+      className="journal-page relative isolate min-h-full overflow-hidden bg-transparent"
+      style={{
+        backgroundImage: `url(${lavenderBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed',
+      }}
+    >
+      {/* Background overlay — identical to Archive */}
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-white/30 dark:bg-slate-950/80" />
 
-        {/* Header */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F9E9ED] text-[#B85C78] dark:bg-rose-950/40 dark:text-rose-300">
-              <BookOpen size={23} />
-            </div>
-
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[#38242D] dark:text-slate-100 sm:text-3xl">
-                My Journal
-              </h1>
-
-              <p className="mt-1 text-sm text-[#8D596B] dark:text-slate-400">
-                Capture your thoughts, moods and everyday moments.
-              </p>
-            </div>
-          </div>
-
-          <Button
-            onClick={() => openEditor('new')}
-            className="self-start sm:self-auto"
-          >
-            <Plus size={16} />
-            New entry
-          </Button>
-        </div>
-
-        {/* Search */}
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-sm">
-            <Search
-              size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A56D80]"
-            />
-
-            <Input
-              value={search}
-              onChange={(event) => handleSearchChange(event.target.value)}
-              placeholder="Search journal entries..."
-              className="bg-white/75 pl-10 pr-10 dark:bg-[#21171D]"
-            />
-
-            {search && (
-              <button
-                type="button"
-                onClick={() => handleSearchChange('')}
-                aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main"
-              >
-                <X size={15} />
-              </button>
-            )}
-          </div>
-
-          <span className="text-sm font-medium text-[#8D596B] dark:text-slate-400">
-            {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
-          </span>
-        </div>
-
-        {/* Section heading */}
-        <div className="mb-5 flex items-center justify-between border-b border-[#EED5DD] pb-3 dark:border-[#60404B]">
-          <div>
-            <h2 className="text-lg font-bold text-[#38242D] dark:text-slate-100">
-              Your memories
-            </h2>
-
-            <p className="mt-0.5 text-sm text-[#8D596B] dark:text-slate-400">
-              Your personal collection of thoughts.
-            </p>
-          </div>
-        </div>
-
-        {/* Entries */}
-        {entries.length === 0 ? (
-          <div className="rounded-[22px] border border-border/60 bg-card/70 px-5 py-12 shadow-sm backdrop-blur-xl dark:border-[#60404B] dark:bg-[#281B22]/96">
-            <EmptyState
-              icon={BookOpen}
-              title="No journal entries"
-              description="Capture how today felt — moods, moments and gratitude."
-              action={<Button onClick={() => openEditor('new')}><Plus size={15} />New entry</Button>}
-            />
-          </div>
-        ) : filteredEntries.length === 0 ? (
-          <div className="rounded-[22px] border border-border/60 bg-card/70 px-5 py-12 text-center shadow-sm backdrop-blur-xl dark:border-[#60404B] dark:bg-[#281B22]/96">
-            <Search size={28} className="mx-auto mb-3 text-accent" />
-            <p className="font-semibold text-text-main">No matching entries</p>
-            <p className="mt-1 text-sm text-text-muted">Try searching with another keyword.</p>
-          </div>
-        ) : (
-          <>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-text-muted">Showing {visibleEntries.length} of {filteredEntries.length} entries</p>
-              <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-card/65 p-1 backdrop-blur-xl">
-                <button type="button" onClick={() => setViewMode('grid')} aria-label="Grid view" aria-pressed={viewMode === 'grid'} className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${viewMode === 'grid' ? 'bg-accent/15 text-accent' : 'text-text-muted hover:bg-card'}`}>
-                  <LayoutGrid size={17} />
-                </button>
-                <button type="button" onClick={() => setViewMode('list')} aria-label="List view" aria-pressed={viewMode === 'list'} className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${viewMode === 'list' ? 'bg-accent/15 text-accent' : 'text-text-muted hover:bg-card'}`}>
-                  <List size={17} />
-                </button>
+      <main className="relative mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 lg:px-9 lg:py-9">
+        {/* Header — same Archive structure */}
+        <header className="mb-7 sm:mb-9">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border/60 bg-card/70 text-accent shadow-sm backdrop-blur-xl sm:h-14 sm:w-14">
+                <BookOpen size={25} strokeWidth={1.8} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-bold tracking-tight text-text-main sm:text-3xl">My Journal</h1>
+                  <span className="rounded-full border border-border/60 bg-card/60 px-2.5 py-1 text-[11px] font-semibold text-text-muted backdrop-blur-xl">
+                    {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-text-muted">Your personal space for thoughts, moods and everyday moments.</p>
               </div>
             </div>
 
-            <div className={viewMode === 'grid' ? 'grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-4'}>
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <Button variant="outline" onClick={() => refetch()} loading={isFetching} disabled={isFetching} className="shrink-0" title="Refresh journal">
+                <RefreshCw size={15} />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+              <Button onClick={() => openEditor('new')} className="flex-1 justify-center sm:flex-none">
+                <Plus size={16} /> New Entry
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border/60" />
+            <BookOpen size={14} className="text-accent/70" />
+            <div className="h-px flex-1 bg-border/60" />
+          </div>
+        </header>
+
+        {/* Search and sorting — same Archive glass panel */}
+        <section className={`${glass} mb-7 rounded-3xl p-3.5 sm:p-5`}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative min-w-0 flex-1">
+              <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => handleSearchChange(event.target.value)}
+                placeholder="Search journal entries by title, mood or content..."
+                aria-label="Search journal entries"
+                className="h-12 w-full rounded-2xl border border-border/70 bg-input/60 pl-11 pr-10 text-sm text-text-main outline-none backdrop-blur-xl transition-all placeholder:text-text-muted focus:border-accent focus:ring-2 focus:ring-accent/15"
+              />
+              {search && (
+                <button type="button" onClick={() => handleSearchChange('')} aria-label="Clear search" className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-text-muted transition hover:bg-accent/10 hover:text-accent">
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 sm:w-auto">
+              <span className="hidden items-center gap-1.5 text-xs font-medium text-text-muted sm:flex"><ArrowDownUp size={14} />Sort</span>
+              <Select value={sort} onChange={(event) => setSort(event.target.value)} className="h-12 w-full sm:w-48">
+                <option value="updated">Recently added</option>
+                <option value="oldest">Oldest first</option>
+                <option value="title">Title (A-Z)</option>
+              </Select>
+            </div>
+          </div>
+          {hasSearch && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
+              <p className="text-xs text-text-muted">Showing {filteredEntries.length} result{filteredEntries.length !== 1 ? 's' : ''} for <strong className="text-text-main">"{search}"</strong></p>
+              <button type="button" onClick={() => handleSearchChange('')} className="text-xs font-semibold text-accent hover:underline">Clear search</button>
+            </div>
+          )}
+        </section>
+
+        {/* Collection toolbar — same Archive placement */}
+        <section className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <ArchiveRestore size={17} className="text-accent" />
+              <h2 className="text-lg font-bold tracking-tight text-text-main sm:text-xl">Journal Collection</h2>
+            </div>
+            <p className="mt-1 text-xs text-text-muted sm:text-sm">Your collection of personal thoughts and daily moments.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-card/55 p-1 backdrop-blur-xl">
+              <button type="button" onClick={() => setViewMode('grid')} aria-label="Grid view" aria-pressed={viewMode === 'grid'} className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${viewMode === 'grid' ? 'bg-accent text-white shadow-sm' : 'text-text-muted hover:bg-accent/10 hover:text-accent'}`}><LayoutGrid size={17} /></button>
+              <button type="button" onClick={() => setViewMode('list')} aria-label="List view" aria-pressed={viewMode === 'list'} className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${viewMode === 'list' ? 'bg-accent text-white shadow-sm' : 'text-text-muted hover:bg-accent/10 hover:text-accent'}`}><List size={18} /></button>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/55 px-3 py-2 text-xs font-medium text-text-muted backdrop-blur-xl"><FileText size={14} />{filteredEntries.length} results</div>
+          </div>
+        </section>
+
+        {/* Journal collection */}
+        {filteredEntries.length === 0 ? (
+          hasSearch ? (
+            <div className={`${glass} rounded-3xl px-5 py-14 text-center sm:py-16`}>
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent"><SearchX size={27} strokeWidth={1.8} /></div>
+              <h3 className="text-lg font-semibold text-text-main">No matching journal entries</h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-text-muted">Try another keyword to find the entry you are looking for.</p>
+              <Button variant="outline" className="mt-6" onClick={() => handleSearchChange('')}><RefreshCw size={15} />Clear search</Button>
+            </div>
+          ) : (
+            <EmptyState icon={FolderOpen} title="Your journal is empty" description="Your journal entries will appear here. Create your first entry to capture a thought or moment." action={<Button onClick={() => openEditor('new')}><Plus size={15} />New Entry</Button>} />
+          )
+        ) : (
+          <>
+            <div className={viewMode === 'grid' ? 'grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3' : 'flex flex-col gap-4'}>
               {visibleEntries.map((entry) => {
                 const moodMeta = MOODS.find((item) => item.id === entry.mood);
                 return (
@@ -443,78 +469,51 @@ export default function Journal() {
                     tabIndex={0}
                     onClick={() => openPreview(entry)}
                     onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openPreview(entry); } }}
-                    className={`journal-entry-card group relative isolate flex min-h-[285px] cursor-pointer flex-col overflow-hidden rounded-[22px] border border-border/60 bg-card/70 shadow-[0_4px_16px_rgba(50,35,90,0.07)] backdrop-blur-xl transition-all duration-300 dark:border-[#60404B] dark:bg-[#281B22]/96 dark:shadow-[0_8px_28px_rgba(0,0,0,0.28)] hover:border-accent/40 hover:shadow-[0_8px_22px_rgba(50,35,90,0.10)] ${viewMode === 'list' ? 'w-full' : ''}`}
+                    className={`journal-entry-card group relative isolate flex min-h-[285px] cursor-pointer flex-col overflow-hidden rounded-[22px] border border-border/60 bg-card/70 shadow-[0_4px_16px_rgba(50,35,90,0.07)] backdrop-blur-xl transition-all duration-300 hover:border-accent/40 hover:shadow-[0_8px_22px_rgba(50,35,90,0.10)] ${viewMode === 'list' ? 'w-full' : ''}`}
                   >
-                    {/* Full-card notecard artwork: visible in light and dark modes. */}
-                    <div
-                      aria-hidden="true"
-                      className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[22px]"
-                    >
-                      <img
-                        src={noteCardBackground}
-                        alt=""
-                        className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.62] dark:opacity-[0.22]"
-                      />
+                    <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[22px]">
+                      <img src={noteCardBackground} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-[0.62] dark:opacity-[0.22]" />
                       <div className="absolute inset-0 bg-white/35 dark:hidden" />
-                      <div className="absolute inset-0 hidden bg-[#281B22]/65 dark:block" />
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-rose-100/15 dark:from-rose-950/10 dark:via-transparent dark:to-black/10" />
+                      <div className="absolute inset-0 hidden bg-slate-950/65 dark:block" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-accent/10" />
                     </div>
-
                     <div aria-hidden="true" className="pointer-events-none absolute left-0 top-[22%] z-10 h-[56%] w-[4px] rounded-r-full bg-accent" />
                     <div aria-hidden="true" className="pointer-events-none absolute -right-3 -top-3 z-0 h-36 w-36 rounded-full bg-accent/20 blur-3xl" />
-
                     <div className="relative z-10 flex flex-1 flex-col p-5 pl-6 sm:p-6 sm:pl-7">
                       <div className="mb-6 flex items-start justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-surface/80 text-2xl shadow-sm backdrop-blur-lg">
-                            {moodMeta?.emoji || '📝'}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold text-text-muted">JOURNAL ENTRY</p>
-                            <p className="mt-0.5 text-xs text-text-muted">{formatDate(entry.entry_date)}</p>
-                          </div>
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-card/70 text-2xl shadow-sm backdrop-blur-lg">{moodMeta?.emoji || '📝'}</div>
+                          <div className="min-w-0"><p className="text-xs font-semibold text-text-muted">JOURNAL ENTRY</p><p className="mt-0.5 text-xs text-text-muted">{formatDate(entry.entry_date)}</p></div>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
-                          <button type="button" onClick={(event) => { event.stopPropagation(); openEditor(entry); }} aria-label="Edit entry" title="Edit" className="flex h-9 w-9 items-center justify-center rounded-xl text-text-muted transition hover:bg-accent/10 hover:text-accent">
-                            <Pencil size={16} />
-                          </button>
-                          <button type="button" disabled={remove.isPending} onClick={(event) => { event.stopPropagation(); handleRemove(entry); }} aria-label="Delete entry" title="Delete" className="flex h-9 w-9 items-center justify-center rounded-xl text-text-muted transition hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50">
-                            <Trash2 size={16} />
-                          </button>
+                          <button type="button" onClick={(event) => { event.stopPropagation(); openEditor(entry); }} aria-label="Edit entry" title="Edit" className="flex h-9 w-9 items-center justify-center rounded-xl text-text-muted transition hover:bg-accent/10 hover:text-accent"><Pencil size={16} /></button>
+                          <button type="button" disabled={remove.isPending} onClick={(event) => { event.stopPropagation(); handleRemove(entry); }} aria-label="Delete entry" title="Delete" className="flex h-9 w-9 items-center justify-center rounded-xl text-text-muted transition hover:bg-danger/10 hover:text-danger disabled:opacity-50"><Trash2 size={16} /></button>
                         </div>
                       </div>
-
-                      <h3 className="mb-3 line-clamp-2 text-[21px] font-bold leading-snug tracking-tight text-text-main">
-                        {entry.title || 'Untitled entry'}
-                      </h3>
-                      <p className="mb-5 line-clamp-4 max-w-[95%] text-[13px] leading-[1.85] text-text-muted">
-                        {excerptFromContent(entry.content) || 'No description added yet.'}
-                      </p>
+                      <h3 className="mb-3 line-clamp-2 text-[21px] font-bold leading-snug tracking-tight text-text-main">{entry.title || 'Untitled entry'}</h3>
+                      <p className="mb-5 line-clamp-4 max-w-[95%] text-[13px] leading-[1.85] text-text-muted">{excerptFromContent(entry.content) || 'No description added yet.'}</p>
                       <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/50 pt-4">
                         <span className="text-xs font-medium text-text-muted">Click to read full entry</span>
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ color: moodMeta?.color || '#64748B', backgroundColor: `${moodMeta?.color || '#64748B'}15` }}>
-                          {moodMeta?.emoji || '📝'} {moodMeta?.label || 'No mood'}
-                        </span>
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ color: moodMeta?.color || '#64748B', backgroundColor: `${moodMeta?.color || '#64748B'}15` }}>{moodMeta?.emoji || '📝'} {moodMeta?.label || 'No mood'}</span>
                       </div>
                     </div>
                   </article>
                 );
               })}
             </div>
-
             {filteredEntries.length > visibleCount && (
-              <div className="mt-7 flex justify-center">
-                <Button variant="outline" onClick={() => setVisibleCount((count) => count + 6)}>Show more (+6)</Button>
-              </div>
+              <div className="mt-7 flex justify-center"><Button variant="outline" onClick={() => setVisibleCount((count) => count + 6)}><FileText size={15} />Show more ({Math.min(6, filteredEntries.length - visibleCount)})</Button></div>
             )}
-            {visibleCount > 6 && filteredEntries.length > 0 && (
-              <div className="mt-3 flex justify-center">
-                <Button variant="ghost" onClick={() => setVisibleCount(6)}>Show less</Button>
-              </div>
+            {visibleCount > 6 && filteredEntries.length > 6 && (
+              <div className="mt-3 flex justify-center"><button type="button" onClick={() => setVisibleCount(6)} className="rounded-lg px-3 py-2 text-xs font-semibold text-text-muted transition hover:bg-accent/10 hover:text-accent">Show less</button></div>
             )}
           </>
         )}
-      </div>
+
+        {filteredEntries.length > 0 && (
+          <footer className="mt-8 flex flex-wrap items-center justify-center gap-2 border-t border-border/50 pt-5 text-center text-xs text-text-muted"><BookOpen size={14} className="text-accent" /><span>Your journal entries are saved in your personal collection.</span></footer>
+        )}
+      </main>
 
       {/* Full journal preview */}
       <Dialog
@@ -809,38 +808,6 @@ export default function Journal() {
       </Dialog>
 
       <style>{`
-        /* Midnight Rose: enforce a real dark backdrop above the app wallpaper. */
-        .journal-page-backdrop {
-          background: transparent;
-          transition: background-color 180ms ease;
-        }
-
-        html.dark .journal-page .journal-entry-card,
-        body.dark .journal-page .journal-entry-card,
-        .dark .journal-page .journal-entry-card {
-          background: #281B22 !important;
-          border-color: #60404B !important;
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.34) !important;
-        }
-
-        html.dark .journal-page .text-text-main,
-        body.dark .journal-page .text-text-main,
-        .dark .journal-page .text-text-main {
-          color: #F8EDF1 !important;
-        }
-
-        html.dark .journal-page .text-text-muted,
-        body.dark .journal-page .text-text-muted,
-        .dark .journal-page .text-text-muted {
-          color: #CBB7C0 !important;
-        }
-
-        html.dark .journal-page .bg-card\/65,
-        body.dark .journal-page .bg-card\/65,
-        .dark .journal-page .bg-card\/65 {
-          background-color: #30212A !important;
-        }
-
         .journal-prose {
           font-size: 15px;
           line-height: 1.85;

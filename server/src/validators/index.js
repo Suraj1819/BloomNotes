@@ -1,5 +1,9 @@
-// server/src/validators/index.js
+
 import { z } from 'zod';
+
+// --------------------------------------------------
+// PROFILE
+// --------------------------------------------------
 
 export const profileSchema = z.object({
   full_name: z.string().min(1).max(120).optional(),
@@ -13,6 +17,10 @@ export const profileSchema = z.object({
   notif_reminders: z.boolean().optional(),
   notif_account: z.boolean().optional(),
 });
+
+// --------------------------------------------------
+// NOTES
+// --------------------------------------------------
 
 export const noteCreateSchema = z.object({
   title: z.string().max(200).optional(),
@@ -33,8 +41,13 @@ export const noteUpdateSchema = z.object({
   is_archived: z.boolean().optional(),
   is_deleted: z.boolean().optional(),
   last_opened_at: z.string().datetime().nullable().optional(),
+
   // theme_id is intentionally NOT editable here — themes are permanent.
 });
+
+// --------------------------------------------------
+// FOLDERS
+// --------------------------------------------------
 
 export const folderSchema = z.object({
   name: z.string().min(1).max(120),
@@ -42,17 +55,38 @@ export const folderSchema = z.object({
   parent_folder_id: z.string().uuid().nullable().optional(),
 });
 
+// --------------------------------------------------
+// TAGS
+// --------------------------------------------------
+
 export const tagSchema = z.object({
   name: z.string().min(1).max(60),
   color: z.string().max(20).optional(),
 });
 
+// --------------------------------------------------
+// JOURNAL
+// --------------------------------------------------
+
 export const journalSchema = z.object({
   title: z.string().max(200).optional(),
   content: z.any().optional(),
-  mood: z.enum(['joyful', 'happy', 'calm', 'neutral', 'anxious', 'sad', 'angry', 'tired']).nullable().optional(),
+  mood: z.enum([
+    'joyful',
+    'happy',
+    'calm',
+    'neutral',
+    'anxious',
+    'sad',
+    'angry',
+    'tired',
+  ]).nullable().optional(),
   entry_date: z.string().date().optional(),
 });
+
+// --------------------------------------------------
+// REMINDERS
+// --------------------------------------------------
 
 export const reminderSchema = z.object({
   title: z.string().min(1).max(200),
@@ -61,6 +95,18 @@ export const reminderSchema = z.object({
   note_id: z.string().uuid().nullable().optional(),
   status: z.enum(['pending', 'done', 'snoozed']).optional(),
 });
+
+// Separate schema for partial reminder updates.
+export const reminderUpdateSchema = reminderSchema.partial().refine(
+  (data) => Object.keys(data).length > 0,
+  {
+    message: 'At least one field is required for reminder update.',
+  }
+);
+
+// --------------------------------------------------
+// PERSONAL SPACE
+// --------------------------------------------------
 
 export const personalSpaceEntrySchema = z.object({
   category_id: z.string().uuid().nullable().optional(),
@@ -74,9 +120,23 @@ export const personalSpaceCategorySchema = z.object({
   name: z.string().min(1).max(80),
 });
 
+// --------------------------------------------------
+// VAULT
+// --------------------------------------------------
+
 export const vaultMetaSchema = z.object({
-  category: z.string().max(80).optional(),
-});
+  category: z.string().trim().min(1).max(80).nullable().optional(),
+  description: z.string().trim().max(2000).nullable().optional(),
+}).refine(
+  (data) => Object.keys(data).length > 0,
+  {
+    message: 'At least one vault field is required for update.',
+  }
+);
+
+// --------------------------------------------------
+// PAGINATION
+// --------------------------------------------------
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -85,19 +145,36 @@ export const paginationSchema = z.object({
   sort: z.string().optional(),
 });
 
+// --------------------------------------------------
+// VALIDATION MIDDLEWARE
+// --------------------------------------------------
+
 export function validate(schema, source = 'body') {
   return (req, _res, next) => {
-    const data = source === 'body' ? req.body : source === 'query' ? req.query : req.params;
+    const data =
+      source === 'body'
+        ? req.body
+        : source === 'query'
+          ? req.query
+          : req.params;
+
     const result = schema.safeParse(data);
+
     if (!result.success) {
       const err = new Error('Validation failed');
       err.name = 'ZodError';
       err.issues = result.error.issues;
       return next(err);
     }
-    if (source === 'body') req.body = result.data;
-    else if (source === 'query') req.query = result.data;
-    else req.params = result.data;
+
+    if (source === 'body') {
+      req.body = result.data;
+    } else if (source === 'query') {
+      req.query = result.data;
+    } else {
+      req.params = result.data;
+    }
+
     next();
   };
 }

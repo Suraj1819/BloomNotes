@@ -1,187 +1,395 @@
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
 import { notesApi } from '../../services/index.js';
 import { NoteCard } from '../../components/notes/NoteCard.jsx';
+import { Button } from '../../components/ui/Button.jsx';
+import { Select } from '../../components/ui/Select.jsx';
 
 import {
   PageLoader,
   EmptyState,
 } from '../../components/ui/Spinner.jsx';
 
-import { Button } from '../../components/ui/Button.jsx';
-
 import {
   Pin,
-  Plus,
-  FileText,
-  Grid2X2,
+  Search,
+  X,
+  RefreshCw,
+  LayoutGrid,
   List,
-  ChevronDown,
+  FileText,
+  ArrowDownUp,
+  Sparkles,
+  SearchX,
+  Bookmark,
 } from 'lucide-react';
 
-import lavenderBg from '../../../assets/background/favv1.png';
+import lavenderBackground from '../../../assets/background/fav4.png';
+
+const glass = 'bn-glass-card';
 
 export default function Pinned() {
   const navigate = useNavigate();
 
-  const [view, setView] = useState('grid');
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('updated');
+  const [viewMode, setViewMode] = useState('grid');
   const [visibleCount, setVisibleCount] = useState(6);
 
+  // Fetch pinned notes
   const {
     data,
     isLoading,
     isError,
+    error,
+    isFetching,
+    refetch,
   } = useQuery({
-    queryKey: ['notes', 'pinned'],
+    queryKey: ['notes', 'pinned', sort],
     queryFn: () =>
       notesApi.list({
         pinned: true,
+        sort,
         limit: 100,
       }),
   });
 
-  const pinnedNotes = data?.items || [];
-  const visibleNotes = pinnedNotes.slice(0, visibleCount);
-  const hasMore = visibleCount < pinnedNotes.length;
+  const notes = data?.items || [];
+  const totalNotes = data?.total ?? notes.length;
 
-  if (isLoading) {
-    return <PageLoader />;
+  // Search pinned notes
+  const filteredNotes = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) return notes;
+
+    return notes.filter((note) => {
+      const title = String(note.title || '').toLowerCase();
+      const excerpt = String(note.excerpt || '').toLowerCase();
+      const plainText = String(note.plain_text || '').toLowerCase();
+
+      const content =
+        typeof note.content === 'string'
+          ? note.content.toLowerCase()
+          : JSON.stringify(note.content || {}).toLowerCase();
+
+      const tags = Array.isArray(note.tags)
+        ? note.tags
+            .map((tag) =>
+              typeof tag === 'string' ? tag : tag?.name || ''
+            )
+            .join(' ')
+            .toLowerCase()
+        : '';
+
+      return (
+        title.includes(query) ||
+        excerpt.includes(query) ||
+        plainText.includes(query) ||
+        content.includes(query) ||
+        tags.includes(query)
+      );
+    });
+  }, [notes, search]);
+
+  // Reset pagination on search or sorting
+  useEffect(() => {
+    setVisibleCount(6);
+  }, [search, sort]);
+
+  const visibleNotes = filteredNotes.slice(0, visibleCount);
+  const hasSearch = Boolean(search.trim());
+
+  // Initial loading
+  if (isLoading) return <PageLoader />;
+
+  // Error state
+  if (isError) {
+    return (
+      <div
+        className="relative isolate flex min-h-[65vh] items-center justify-center overflow-hidden px-4 py-10"
+        style={{
+          backgroundImage: `url(${lavenderBackground})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className={`${glass} w-full max-w-md rounded-3xl p-7 text-center sm:p-9`}>
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-danger/10 text-danger">
+            <Pin size={25} />
+          </div>
+
+          <h2 className="text-xl font-semibold text-text-main">
+            Unable to load pinned notes
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-text-muted">
+            {error?.message || 'Your pinned notes could not be loaded.'}
+          </p>
+
+          <Button
+            className="mt-6"
+            onClick={() => refetch()}
+            loading={isFetching}
+            disabled={isFetching}
+          >
+            <RefreshCw size={15} />
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div
-      className="relative min-h-full overflow-hidden"
+      className="relative isolate min-h-full overflow-hidden bg-transparent"
       style={{
-        backgroundImage: `url(${lavenderBg})`,
+        backgroundImage: `url(${lavenderBackground})`,
         backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundPosition: 'center top',
+        backgroundRepeat: 'no-repeat',
         backgroundAttachment: 'fixed',
       }}
     >
       {/* Background overlay */}
-      <div className="pointer-events-none absolute inset-0 bg-white/40 dark:bg-black/80" />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-white/30 dark:bg-slate-950/80" />
 
-      <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+      <main className="relative mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 lg:px-9 lg:py-9">
 
         {/* Header */}
-        <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <header className="mb-7 sm:mb-9">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 dark:bg-rose-950/50">
-              <Pin
-                size={23}
-                className="text-rose-600 dark:text-rose-400"
-                fill="currentColor"
+            <div className="flex min-w-0 items-center gap-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border/60 bg-card/70 text-accent shadow-sm backdrop-blur-xl sm:h-14 sm:w-14">
+                <Pin size={25} strokeWidth={1.8} />
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-bold tracking-tight text-text-main sm:text-3xl">
+                    Pinned Notes
+                  </h1>
+
+                  <span className="rounded-full border border-border/60 bg-card/60 px-2.5 py-1 text-[11px] font-semibold text-text-muted backdrop-blur-xl">
+                    {totalNotes} pinned
+                  </span>
+                </div>
+
+                <p className="mt-1 text-sm text-text-muted">
+                  Your important thoughts, always within easy reach.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={() => refetch()}
+                loading={isFetching}
+                disabled={isFetching}
+                className="shrink-0"
+                title="Refresh pinned notes"
+              >
+                <RefreshCw size={15} />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+
+              <Button
+                onClick={() => navigate('/app/notes')}
+                className="flex-1 justify-center sm:flex-none"
+              >
+                <FileText size={16} />
+                All Notes
+              </Button>
+            </div>
+          </div>
+
+          {/* Decorative divider */}
+          <div className="mt-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border/60" />
+            <Pin size={14} className="text-accent/70" />
+            <div className="h-px flex-1 bg-border/60" />
+          </div>
+        </header>
+
+        {/* Search panel */}
+        <section className={`${glass} mb-7 rounded-3xl p-3.5 sm:p-5`}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+
+            {/* Search */}
+            <div className="relative min-w-0 flex-1">
+              <Search
+                size={18}
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
               />
+
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search pinned notes by title or content..."
+                aria-label="Search pinned notes"
+                className="h-12 w-full rounded-2xl border border-border/70 bg-input/60 pl-11 pr-10 text-sm text-text-main outline-none backdrop-blur-xl transition-all placeholder:text-text-muted focus:border-accent focus:ring-2 focus:ring-accent/15"
+              />
+
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-text-muted transition hover:bg-accent/10 hover:text-accent"
+                >
+                  <X size={15} />
+                </button>
+              )}
             </div>
 
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-text-main sm:text-3xl">
-                Pinned Notes
-              </h1>
+            {/* Sorting */}
+            <div className="flex items-center gap-2 sm:w-auto">
+              <span className="hidden items-center gap-1.5 text-xs font-medium text-text-muted sm:flex">
+                <ArrowDownUp size={14} />
+                Sort
+              </span>
 
-              <p className="mt-1 text-sm text-text-muted">
-                Keep your important thoughts within easy reach.
+              <Select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="h-12 w-full sm:w-48"
+              >
+                <option value="updated">Recently updated</option>
+                <option value="created">Recently created</option>
+                <option value="title">Title (A-Z)</option>
+              </Select>
+            </div>
+          </div>
+
+          {/* Search information */}
+          {hasSearch && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
+              <p className="text-xs text-text-muted">
+                Showing {filteredNotes.length} result
+                {filteredNotes.length !== 1 ? 's' : ''} for{' '}
+                <strong className="text-text-main">
+                  "{search}"
+                </strong>
               </p>
+
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="text-xs font-semibold text-accent hover:underline"
+              >
+                Clear search
+              </button>
             </div>
-          </div>
+          )}
+        </section>
 
-          {/* Pinned count */}
-          <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/70 bg-white/65 px-4 py-2 shadow-sm dark:border-white/10 dark:bg-black/25 sm:self-auto">
-            <FileText size={15} className="text-rose-500" />
+        {/* Collection toolbar */}
+        <section className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <Bookmark size={17} className="text-accent" />
 
-            <span className="text-sm font-medium text-text-main">
-              {pinnedNotes.length}{' '}
-              {pinnedNotes.length === 1 ? 'pinned note' : 'pinned notes'}
-            </span>
-          </div>
+              <h2 className="text-lg font-bold tracking-tight text-text-main sm:text-xl">
+                Pinned Collection
+              </h2>
+            </div>
 
-        </div>
-
-        {/* Error state */}
-        {isError ? (
-          <div className="rounded-3xl border border-white/70 bg-white/70 px-5 py-12 text-center shadow-sm dark:border-white/10 dark:bg-black/25">
-            <p className="text-sm text-text-muted">
-              Unable to load pinned notes. Please try again.
+            <p className="mt-1 text-xs text-text-muted sm:text-sm">
+              Notes you have marked as important.
             </p>
           </div>
-        ) : pinnedNotes.length === 0 ? (
 
-          /* Empty state */
-          <div className="rounded-3xl border border-white/70 bg-white/70 px-5 py-16 shadow-sm dark:border-white/10 dark:bg-black/25">
+          <div className="flex flex-wrap items-center gap-2">
+
+            {/* View toggle */}
+            <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-card/55 p-1 backdrop-blur-xl">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                aria-label="Grid view"
+                aria-pressed={viewMode === 'grid'}
+                className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${
+                  viewMode === 'grid'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-text-muted hover:bg-accent/10 hover:text-accent'
+                }`}
+              >
+                <LayoutGrid size={17} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                aria-label="List view"
+                aria-pressed={viewMode === 'list'}
+                className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${
+                  viewMode === 'list'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-text-muted hover:bg-accent/10 hover:text-accent'
+                }`}
+              >
+                <List size={18} />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/55 px-3 py-2 text-xs font-medium text-text-muted backdrop-blur-xl">
+              <FileText size={14} />
+              {filteredNotes.length} results
+            </div>
+          </div>
+        </section>
+
+        {/* Notes collection */}
+        {filteredNotes.length === 0 ? (
+          hasSearch ? (
+            <div className={`${glass} rounded-3xl px-5 py-14 text-center sm:py-16`}>
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                <SearchX size={27} strokeWidth={1.8} />
+              </div>
+
+              <h3 className="text-lg font-semibold text-text-main">
+                No matching pinned notes
+              </h3>
+
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-text-muted">
+                Try another keyword to find the note you are looking for.
+              </p>
+
+              <Button
+                variant="outline"
+                className="mt-6"
+                onClick={() => setSearch('')}
+              >
+                <RefreshCw size={15} />
+                Clear search
+              </Button>
+            </div>
+          ) : (
             <EmptyState
               icon={Pin}
               title="No pinned notes yet"
-              description="Pin your important notes to find them easily."
+              description="Notes you pin will appear here. Pin your important notes to access them quickly whenever you need them."
               action={
-                <Button
-                  onClick={() => navigate('/app/notes')}
-                  className="bg-[#B8326B] text-white hover:bg-[#9F285B]"
-                >
-                  <Plus size={15} />
-                  Browse notes
+                <Button onClick={() => navigate('/app/notes')}>
+                  <FileText size={15} />
+                  Browse all notes
                 </Button>
               }
             />
-          </div>
-
+          )
         ) : (
-
           <>
-            {/* Section heading and view toggle */}
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold text-text-main">
-                  Your pinned notes
-                </h2>
-
-                <p className="mt-1 text-xs text-text-muted">
-                  Your important notes, all in one place.
-                </p>
-              </div>
-
-              {/* Grid / List buttons */}
-              <div className="flex items-center gap-1 rounded-xl border border-white/70 bg-white/65 p-1 shadow-sm dark:border-white/10 dark:bg-black/25">
-
-                <button
-                  type="button"
-                  onClick={() => setView('grid')}
-                  aria-label="Grid view"
-                  aria-pressed={view === 'grid'}
-                  className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${
-                    view === 'grid'
-                      ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400'
-                      : 'text-text-muted hover:bg-white/60 dark:hover:bg-white/10'
-                  }`}
-                >
-                  <Grid2X2 size={18} />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setView('list')}
-                  aria-label="List view"
-                  aria-pressed={view === 'list'}
-                  className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${
-                    view === 'list'
-                      ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400'
-                      : 'text-text-muted hover:bg-white/60 dark:hover:bg-white/10'
-                  }`}
-                >
-                  <List size={18} />
-                </button>
-
-              </div>
-            </div>
-
-            {/* Notes */}
             <div
               className={
-                view === 'grid'
-                  ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+                viewMode === 'grid'
+                  ? 'grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3'
                   : 'flex flex-col gap-4'
               }
             >
@@ -193,32 +401,47 @@ export default function Pinned() {
               ))}
             </div>
 
-            {/* Show More */}
-            {hasMore && (
-              <div className="mt-8 flex justify-center">
+            {/* Show more */}
+            {filteredNotes.length > visibleCount && (
+              <div className="mt-7 flex justify-center">
                 <Button
+                  variant="outline"
                   onClick={() =>
                     setVisibleCount((count) => count + 6)
                   }
-                  className="gap-2 border border-white/70 bg-white/70 text-text-main shadow-sm hover:bg-white dark:border-white/10 dark:bg-black/25 dark:hover:bg-black/40"
                 >
-                  Show More
-                  <ChevronDown size={16} />
+                  <FileText size={15} />
+                  Show more ({Math.min(6, filteredNotes.length - visibleCount)})
                 </Button>
               </div>
             )}
 
-            {/* All notes shown */}
-            {!hasMore && pinnedNotes.length > 6 && (
-              <p className="mt-8 text-center text-xs text-text-muted">
-                You've viewed all {pinnedNotes.length} pinned notes.
-              </p>
+            {/* Show less */}
+            {visibleCount > 6 && filteredNotes.length > 6 && (
+              <div className="mt-3 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount(6)}
+                  className="rounded-lg px-3 py-2 text-xs font-semibold text-text-muted transition hover:bg-accent/10 hover:text-accent"
+                >
+                  Show less
+                </button>
+              </div>
             )}
-
           </>
         )}
 
-      </div>
+        {/* Footer */}
+        {filteredNotes.length > 0 && (
+          <footer className="mt-8 flex flex-wrap items-center justify-center gap-2 border-t border-border/50 pt-5 text-center text-xs text-text-muted">
+            <Pin size={14} className="text-accent" />
+            <span>
+              Your pinned notes are always easy to find here.
+            </span>
+          </footer>
+        )}
+
+      </main>
     </div>
   );
 }

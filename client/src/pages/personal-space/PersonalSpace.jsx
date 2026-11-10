@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -46,9 +46,10 @@ import {
   Search,
   LayoutGrid,
   List,
-  ChevronDown,
-  ChevronUp,
   X,
+  RefreshCw,
+  ArrowDownUp,
+  SearchX,
   Save,
   ArrowLeft,
   Type,
@@ -60,7 +61,7 @@ import {
 import { relativeTime, cn } from '../../lib/utils.js';
 import { useConfirm, usePrompt } from '../../contexts/ConfirmContext.jsx';
 
-import lavenderBg from '../../../assets/background/favv.png';
+import lavenderBg from '../../../assets/background/fav4.png';
 import noteCardBackground from '../../../assets/background/notecard.png';
 
 const KIND_META = {
@@ -178,7 +179,7 @@ export default function PersonalSpace() {
     queryFn: () => personalSpaceApi.listCategories(),
   });
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['ps-entries'],
     queryFn: () => personalSpaceApi.listEntries({ limit: 200 }),
   });
@@ -188,7 +189,8 @@ export default function PersonalSpace() {
   const [previewEntry, setPreviewEntry] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [search, setSearch] = useState('');
-  const [visibleCount, setVisibleCount] = useState(9);
+  const [sort, setSort] = useState('updated');
+  const [visibleCount, setVisibleCount] = useState(6);
 
   const [form, setForm] = useState({
     kind: 'note',
@@ -317,33 +319,47 @@ export default function PersonalSpace() {
     }
   };
 
+  useEffect(() => {
+    setVisibleCount(6);
+  }, [search, sort]);
+
   if (isLoading) return <PageLoader />;
 
   const entries = data?.items || [];
   const isSaving = create.isPending || update.isPending;
   const normalizedSearch = search.trim().toLowerCase();
-  const filteredEntries = entries.filter((entry) => {
-    if (!normalizedSearch) return true;
-    return [entry.title, entry.content, entry.kind]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
-      .includes(normalizedSearch);
-  });
+  const filteredEntries = entries
+    .filter((entry) => {
+      if (!normalizedSearch) return true;
+      return [entry.title, entry.content, entry.kind]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedSearch);
+    })
+    .sort((a, b) => {
+      if (sort === 'title') {
+        return String(a.title || '').localeCompare(String(b.title || ''));
+      }
+      const aDate = new Date(sort === 'created' ? a.created_at || a.updated_at : a.updated_at || a.created_at).getTime();
+      const bDate = new Date(sort === 'created' ? b.created_at || b.updated_at : b.updated_at || b.created_at).getTime();
+      return (bDate || 0) - (aDate || 0);
+    });
   const visibleEntries = filteredEntries.slice(0, visibleCount);
+  const hasSearch = Boolean(normalizedSearch);
 
   return (
     <div
-      className="relative isolate min-h-full overflow-hidden"
+      className="relative isolate min-h-full overflow-hidden bg-transparent"
       style={{
         backgroundImage: `url(${lavenderBg})`,
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
         backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+        backgroundRepeat: 'no-repeat',
         backgroundAttachment: 'fixed',
       }}
     >
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-white/40 dark:bg-black/80" />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-white/30 dark:bg-slate-950/80" />
       <style>{`
         .personal-space-editor-content { min-height: 260px; outline: none; }
         .personal-space-editor-content p { margin: 0.55rem 0; line-height: 1.8; }
@@ -367,124 +383,140 @@ export default function PersonalSpace() {
         .dark .personal-space-editor-content th, .dark .personal-space-editor-content td, .dark .personal-space-preview-content th, .dark .personal-space-preview-content td { border-color: rgba(255,255,255,.16); }
       `}</style>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-
-        {/* Page heading */}
-        <section className="mb-6 border-0 bg-transparent p-0 shadow-none backdrop-blur-none">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <main className="relative mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 lg:px-9 lg:py-9">
+        {/* Header — same structure as Archive */}
+        <header className="mb-7 sm:mb-9">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3.5">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-rose-100 bg-gradient-to-br from-white to-rose-50 text-[#B85C78] shadow-sm dark:border-white/10 dark:from-slate-800 dark:to-slate-900 dark:text-rose-300">
-                <Sparkles size={21} />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border/60 bg-card/70 text-accent shadow-sm backdrop-blur-xl sm:h-14 sm:w-14">
+                <Sparkles size={25} strokeWidth={1.8} />
               </div>
               <div className="min-w-0">
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-extrabold tracking-tight text-[#38242D] dark:text-white sm:text-[28px]">
-                    Personal Space
-                  </h1>
-                  <span className="rounded-full border border-rose-100 bg-rose-50/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#B85C78] dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-300">
-                    Private library
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-bold tracking-tight text-text-main sm:text-3xl">Personal Space</h1>
+                  <span className="rounded-full border border-border/60 bg-card/60 px-2.5 py-1 text-[11px] font-semibold text-text-muted backdrop-blur-xl">
+                    {entries.length} entries
                   </span>
                 </div>
-                <p className="text-sm leading-relaxed text-[#8D707A] dark:text-slate-400">
-                  Keep your notes, links, checklists and code snippets organized in one place.
+                <p className="mt-1 text-sm text-text-muted">
+                  Your notes, links, checklists and snippets in one place.
                 </p>
               </div>
             </div>
-
-            <Button onClick={() => open()} className="shrink-0">
-              <Plus size={15} />
-              New entry
-            </Button>
-          </div>
-
-          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-2xl border border-rose-100/80 bg-white/65 px-3.5 py-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-[#30212A]/95">
-              <div className="flex items-center gap-2 text-[#967A84] dark:text-slate-400">
-                <FileText size={14} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">All entries</span>
-              </div>
-              <p className="mt-1.5 text-xl font-extrabold tabular-nums text-[#3E2932] dark:text-white">{entries.length}</p>
-            </div>
-            <div className="rounded-2xl border border-rose-100/80 bg-white/65 px-3.5 py-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-[#30212A]/95">
-              <div className="flex items-center gap-2 text-[#967A84] dark:text-slate-400">
-                <Pin size={14} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">Pinned</span>
-              </div>
-              <p className="mt-1.5 text-xl font-extrabold tabular-nums text-[#3E2932] dark:text-white">{entries.filter((entry) => entry.is_pinned).length}</p>
-            </div>
-            <div className="rounded-2xl border border-rose-100/80 bg-white/65 px-3.5 py-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-[#30212A]/95">
-              <div className="flex items-center gap-2 text-[#967A84] dark:text-slate-400">
-                <ListChecks size={14} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">Checklists</span>
-              </div>
-              <p className="mt-1.5 text-xl font-extrabold tabular-nums text-[#3E2932] dark:text-white">{entries.filter((entry) => entry.kind === 'checklist').length}</p>
-            </div>
-            <div className="rounded-2xl border border-rose-100/80 bg-white/65 px-3.5 py-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-[#30212A]/95">
-              <div className="flex items-center gap-2 text-[#967A84] dark:text-slate-400">
-                <LinkIcon size={14} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">Links</span>
-              </div>
-              <p className="mt-1.5 text-xl font-extrabold tabular-nums text-[#3E2932] dark:text-white">{entries.filter((entry) => entry.kind === 'link').length}</p>
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={() => refetch()}
+                loading={isFetching}
+                disabled={isFetching}
+                className="shrink-0"
+                title="Refresh personal space"
+              >
+                <RefreshCw size={15} />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+              <Button onClick={() => open()} className="flex-1 justify-center sm:flex-none">
+                <Plus size={16} />
+                New Entry
+              </Button>
             </div>
           </div>
+          <div className="mt-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border/60" />
+            <Sparkles size={14} className="text-accent/70" />
+            <div className="h-px flex-1 bg-border/60" />
+          </div>
+        </header>
+
+        {/* Search panel — identical Archive styling */}
+        <section className="bn-glass-card mb-7 rounded-3xl p-3.5 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative min-w-0 flex-1">
+              <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search personal entries by title or content..."
+                aria-label="Search personal entries"
+                className="h-12 w-full rounded-2xl border border-border/70 bg-input/60 pl-11 pr-10 text-sm text-text-main outline-none backdrop-blur-xl transition-all placeholder:text-text-muted focus:border-accent focus:ring-2 focus:ring-accent/15"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-text-muted transition hover:bg-accent/10 hover:text-accent"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 sm:w-auto">
+              <span className="hidden items-center gap-1.5 text-xs font-medium text-text-muted sm:flex">
+                <ArrowDownUp size={14} /> Sort
+              </span>
+              <Select value={sort} onChange={(event) => setSort(event.target.value)} className="h-12 w-full sm:w-48">
+                <option value="updated">Recently updated</option>
+                <option value="created">Recently created</option>
+                <option value="title">Title (A-Z)</option>
+              </Select>
+            </div>
+          </div>
+          {hasSearch && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
+              <p className="text-xs text-text-muted">
+                Showing {filteredEntries.length} result{filteredEntries.length !== 1 ? 's' : ''} for <strong className="text-text-main">"{search}"</strong>
+              </p>
+              <button type="button" onClick={() => setSearch('')} className="text-xs font-semibold text-accent hover:underline">
+                Clear search
+              </button>
+            </div>
+          )}
         </section>
 
-        {/* Search and view controls */}
-        <section className="mb-5 flex flex-col gap-3 rounded-2xl border border-white/70 bg-white/55 p-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/45 sm:flex-row sm:items-center sm:justify-between sm:p-3.5">
-          <div className="relative min-w-0 flex-1 sm:max-w-md">
-            <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A58B93] dark:text-slate-500" />
-            <input
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setVisibleCount(9);
-              }}
-              placeholder="Search your personal space..."
-              aria-label="Search personal entries"
-              className="h-11 w-full rounded-xl border border-rose-100/80 bg-white/75 pl-10 pr-4 text-sm text-[#3E2932] outline-none transition placeholder:text-[#B69BA3] focus:border-rose-300 focus:ring-2 focus:ring-rose-100 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-rose-500/10"
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-medium text-[#967A84] dark:text-slate-400">
-              Showing <span className="font-bold text-[#A94F6C] dark:text-rose-300">{visibleEntries.length}</span> of {filteredEntries.length}
+        {/* Collection toolbar — same Archive alignment */}
+        <section className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <FolderOpen size={17} className="text-accent" />
+              <h2 className="text-lg font-bold tracking-tight text-text-main sm:text-xl">Your Personal Collection</h2>
+            </div>
+            <p className="mt-1 text-xs text-text-muted sm:text-sm">
+              Keep your notes, useful links, checklists and code snippets organized.
             </p>
-            <div className="flex shrink-0 items-center rounded-xl border border-rose-100 bg-white/75 p-1 dark:border-white/10 dark:bg-white/[0.04]">
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-card/55 p-1 backdrop-blur-xl">
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
                 aria-label="Grid view"
                 aria-pressed={viewMode === 'grid'}
-                className={cn(
-                  'flex h-8 w-9 items-center justify-center rounded-lg transition',
-                  viewMode === 'grid'
-                    ? 'bg-[#B85C78] text-white shadow-sm'
-                    : 'text-[#987D86] hover:bg-rose-50 dark:text-slate-400 dark:hover:bg-white/10'
-                )}
+                className={cn('flex h-9 w-9 items-center justify-center rounded-lg transition', viewMode === 'grid' ? 'bg-accent text-white shadow-sm' : 'text-text-muted hover:bg-accent/10 hover:text-accent')}
               >
-                <LayoutGrid size={16} />
+                <LayoutGrid size={17} />
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('list')}
                 aria-label="List view"
                 aria-pressed={viewMode === 'list'}
-                className={cn(
-                  'flex h-8 w-9 items-center justify-center rounded-lg transition',
-                  viewMode === 'list'
-                    ? 'bg-[#B85C78] text-white shadow-sm'
-                    : 'text-[#987D86] hover:bg-rose-50 dark:text-slate-400 dark:hover:bg-white/10'
-                )}
+                className={cn('flex h-9 w-9 items-center justify-center rounded-lg transition', viewMode === 'list' ? 'bg-accent text-white shadow-sm' : 'text-text-muted hover:bg-accent/10 hover:text-accent')}
               >
-                <List size={17} />
+                <List size={18} />
               </button>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/55 px-3 py-2 text-xs font-medium text-text-muted backdrop-blur-xl">
+              <FileText size={14} />
+              {filteredEntries.length} results
             </div>
           </div>
         </section>
 
         {/* Personal entries */}
         {entries.length === 0 ? (
-          <div className="rounded-[24px] border border-white/70 bg-white/60 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/50">
+          <div className="bn-glass-card rounded-3xl px-5 py-12">
             <EmptyState
               icon={Sparkles}
               title="Your personal space is empty"
@@ -498,20 +530,22 @@ export default function PersonalSpace() {
             />
           </div>
         ) : filteredEntries.length === 0 ? (
-          <div className="rounded-[24px] border border-white/70 bg-white/60 px-5 py-12 text-center shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/50">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-[#B85C78] dark:bg-rose-500/10 dark:text-rose-300">
-              <Search size={20} />
+          <div className="bn-glass-card rounded-3xl px-5 py-14 text-center sm:py-16">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+              <SearchX size={27} strokeWidth={1.8} />
             </div>
-            <h3 className="mt-4 text-base font-bold text-[#3E2932] dark:text-white">No matching entries</h3>
-            <p className="mt-1 text-sm text-[#967A84] dark:text-slate-400">Try another title, content keyword or entry type.</p>
+            <h3 className="text-lg font-semibold text-text-main">No matching entries</h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-text-muted">Try another keyword to find the entry you are looking for.</p>
+            <Button variant="outline" className="mt-6" onClick={() => setSearch('')}>
+              <RefreshCw size={15} /> Clear search
+            </Button>
           </div>
         ) : (
           <>
             <div className={cn(
-              'grid gap-4 sm:gap-5',
               viewMode === 'grid'
-                ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'
-                : 'grid-cols-1'
+                ? 'grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3'
+                : 'flex flex-col gap-4'
             )}>
               {visibleEntries.map((entry) => {
                 const Meta = KIND_META[entry.kind] || KIND_META.note;
@@ -659,19 +693,18 @@ export default function PersonalSpace() {
             {filteredEntries.length > visibleCount && (
               <div className="mt-7 flex justify-center">
                 <Button variant="outline" onClick={() => setVisibleCount((count) => count + 6)}>
-                  <ChevronDown size={15} />
-                  Show 6 more
+                  <FileText size={15} />
+                  Show more ({Math.min(6, filteredEntries.length - visibleCount)})
                 </Button>
               </div>
             )}
-            {visibleCount > 9 && filteredEntries.length > 9 && (
+            {visibleCount > 6 && filteredEntries.length > 6 && (
               <div className="mt-3 flex justify-center">
                 <button
                   type="button"
-                  onClick={() => setVisibleCount(9)}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-[#B85C78] transition hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-white/5"
+                  onClick={() => setVisibleCount(6)}
+                  className="rounded-lg px-3 py-2 text-xs font-semibold text-text-muted transition hover:bg-accent/10 hover:text-accent"
                 >
-                  <ChevronUp size={14} />
                   Show less
                 </button>
               </div>

@@ -1,44 +1,48 @@
 
-// src/pages/folders/FolderView.jsx
-
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-
-import {
-  ArrowLeft,
-  FolderOpen,
-  Plus,
-  Search,
-  X,
-  FileText,
-  LayoutGrid,
-  List,
-  ChevronDown,
-} from 'lucide-react';
 
 import { foldersApi, notesApi } from '../../services/index.js';
 
 import { NoteCard } from '../../components/notes/NoteCard.jsx';
-
 import { Button } from '../../components/ui/Button.jsx';
-import { Input } from '../../components/ui/Input.jsx';
+import { Select } from '../../components/ui/Select.jsx';
 
 import {
   PageLoader,
   EmptyState,
 } from '../../components/ui/Spinner.jsx';
 
+import {
+  ArrowLeft,
+  FolderOpen,
+  Folder,
+  Plus,
+  Search,
+  X,
+  RefreshCw,
+  LayoutGrid,
+  List,
+  FileText,
+  ArrowDownUp,
+  Sparkles,
+  SearchX,
+} from 'lucide-react';
+
 import { extractTextFromContent } from '../../lib/utils.js';
 
-import lavenderBg from '../../../assets/background/favv1.png';
+import lavenderBackground from '../../../assets/background/fav4.png';
+
+const glass = 'bn-glass-card';
 
 export default function FolderView() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
-  const [view, setView] = useState('grid');
+  const [sort, setSort] = useState('updated');
+  const [viewMode, setViewMode] = useState('grid');
   const [visibleCount, setVisibleCount] = useState(6);
 
   // Fetch folders
@@ -53,18 +57,24 @@ export default function FolderView() {
     ? foldersData
     : foldersData?.items || [];
 
+  const folder = folders.find(
+    (item) => String(item.id) === String(id)
+  );
+
   // Fetch notes belonging to this folder
   const {
     data: notesData,
     isLoading,
     isError,
+    error,
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ['notes', { folderId: id }],
+    queryKey: ['notes', { folderId: id, sort }],
     queryFn: () =>
       notesApi.list({
         folder_id: id,
+        sort,
         limit: 200,
       }),
     enabled: Boolean(id),
@@ -80,10 +90,6 @@ export default function FolderView() {
     notesData?.data?.total ??
     noteItems.length;
 
-  const folder = folders.find(
-    (item) => String(item.id) === String(id)
-  );
-
   // Search notes, including rich-text content
   const filteredNotes = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -91,67 +97,84 @@ export default function FolderView() {
     if (!term) return noteItems;
 
     return noteItems.filter((note) => {
-      const title = note.title || '';
+      const title = String(note.title || '').toLowerCase();
 
       const content = extractTextFromContent(
         note.content || ''
-      );
+      ).toLowerCase();
 
-      const excerpt = note.excerpt || '';
+      const excerpt = String(note.excerpt || '').toLowerCase();
+
+      const plainText = String(note.plain_text || '').toLowerCase();
+
+      const tags = Array.isArray(note.tags)
+        ? note.tags
+            .map((tag) =>
+              typeof tag === 'string' ? tag : tag?.name || ''
+            )
+            .join(' ')
+            .toLowerCase()
+        : '';
 
       return (
-        title.toLowerCase().includes(term) ||
-        content.toLowerCase().includes(term) ||
-        excerpt.toLowerCase().includes(term)
+        title.includes(term) ||
+        content.includes(term) ||
+        excerpt.includes(term) ||
+        plainText.includes(term) ||
+        tags.includes(term)
       );
     });
   }, [noteItems, search]);
 
+  // Reset pagination
+  useEffect(() => {
+    setVisibleCount(6);
+  }, [search, sort]);
+
   const visibleNotes = filteredNotes.slice(0, visibleCount);
-  const hasMore = visibleCount < filteredNotes.length;
+  const hasSearch = Boolean(search.trim());
 
   const handleSearch = (value) => {
     setSearch(value);
     setVisibleCount(6);
   };
 
-  if (isLoading) {
-    return <PageLoader />;
-  }
+  // Loading
+  if (isLoading) return <PageLoader />;
 
+  // Error state
   if (isError) {
     return (
       <div
-        className="relative flex min-h-[60vh] items-center justify-center overflow-hidden"
+        className="relative isolate flex min-h-[65vh] items-center justify-center overflow-hidden px-4 py-10"
         style={{
-          backgroundImage: `url(${lavenderBg})`,
+          backgroundImage: `url(${lavenderBackground})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       >
-        <div className="pointer-events-none absolute inset-0 bg-white/20 dark:bg-black/80" />
+        <div className={`${glass} w-full max-w-md rounded-3xl p-7 text-center sm:p-9`}>
 
-        <div className="relative z-10 mx-4 w-full max-w-md rounded-[24px] border border-border/60 bg-card/80 p-8 text-center shadow-lg backdrop-blur-xl">
-
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
-            <FolderOpen size={26} />
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-danger/10 text-danger">
+            <FolderOpen size={25} />
           </div>
 
-          <h2 className="text-lg font-bold text-text-main">
-            Unable to load folder notes
+          <h2 className="text-xl font-semibold text-text-main">
+            Unable to load folder
           </h2>
 
-          <p className="mt-2 text-sm text-text-muted">
-            Something went wrong while loading your notes.
-            Please try again.
+          <p className="mt-2 text-sm leading-6 text-text-muted">
+            {error?.message || 'Your folder notes could not be loaded.'}
           </p>
 
           <Button
+            className="mt-6"
             onClick={() => refetch()}
+            loading={isFetching}
             disabled={isFetching}
-            className="mt-5"
           >
-            {isFetching ? 'Refreshing...' : 'Try again'}
+            <RefreshCw size={15} />
+            Try again
           </Button>
 
         </div>
@@ -161,275 +184,354 @@ export default function FolderView() {
 
   return (
     <div
-      className="relative min-h-full overflow-hidden"
+      className="relative isolate min-h-full overflow-hidden bg-transparent"
       style={{
-        backgroundImage: `url(${lavenderBg})`,
+        backgroundImage: `url(${lavenderBackground})`,
         backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundPosition: 'center top',
+        backgroundRepeat: 'no-repeat',
         backgroundAttachment: 'fixed',
       }}
     >
-      <div className="pointer-events-none absolute inset-0 bg-white/40 dark:bg-black/20" />
+      {/* Background overlay */}
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-white/30 dark:bg-slate-950/80" />
 
-      <div className="relative z-10 mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+      <main className="relative mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 lg:px-9 lg:py-9">
 
-        {/* Back navigation */}
-        <button
-          type="button"
-          onClick={() => navigate('/app/folders')}
-          className="group mb-6 inline-flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm font-semibold text-text-muted transition hover:bg-white/50 hover:text-accent dark:hover:bg-black/20"
-        >
-          <ArrowLeft
-            size={16}
-            className="transition-transform group-hover:-translate-x-1"
-          />
-          All folders
-        </button>
+        {/* Header */}
+        <header className="mb-7 sm:mb-9">
 
-        {/* Folder header */}
-        <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
-          <div className="flex min-w-0 items-center gap-4">
+            {/* Folder information */}
+            <div className="flex min-w-0 items-center gap-3.5">
 
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
-              <FolderOpen size={23} />
-            </div>
-
-            <div className="min-w-0">
-
-              <div className="mb-1 flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.12em] text-rose-600 dark:text-rose-400">
-                  Your collection
-                </span>
-
-                <span className="h-1 w-1 rounded-full bg-rose-400" />
-
-                <span className="text-xs text-text-muted">
-                  Folder
-                </span>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border/60 bg-card/70 text-accent shadow-sm backdrop-blur-xl sm:h-14 sm:w-14">
+                <FolderOpen size={25} strokeWidth={1.8} />
               </div>
 
-              <h1 className="break-words text-2xl font-semibold tracking-tight text-text-main sm:text-3xl">
-                {folder?.name || 'Folder'}
-              </h1>
+              <div className="min-w-0">
 
-              <p className="mt-1 text-sm text-text-muted">
-                Organize and access your saved notes in one place.
-              </p>
+                <div className="flex flex-wrap items-center gap-2">
 
-            </div>
-          </div>
+                  <h1 className="max-w-full break-words text-2xl font-bold tracking-tight text-text-main sm:text-3xl">
+                    {folder?.name || 'Folder'}
+                  </h1>
 
-          <div className="flex flex-wrap items-center gap-3">
+                  <span className="rounded-full border border-border/60 bg-card/60 px-2.5 py-1 text-[11px] font-semibold text-text-muted backdrop-blur-xl">
+                    {totalNotes} notes
+                  </span>
 
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/65 px-4 py-2 shadow-sm dark:border-white/10 dark:bg-black/25">
-              <FileText size={15} className="text-rose-500" />
+                </div>
 
-              <span className="text-sm font-medium text-text-main">
-                {totalNotes} notes
-              </span>
-            </div>
-
-            <Button
-              onClick={() => navigate('/app/notes')}
-              className="bg-[#B8326B] text-white hover:bg-[#9F285B]"
-            >
-              <Plus size={16} />
-              Browse notes
-            </Button>
-
-          </div>
-        </div>
-
-        {/* Notes heading and controls */}
-        <div className="mb-5">
-
-          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-            <div>
-              <h2 className="text-lg font-semibold text-text-main">
-                Notes
-              </h2>
-
-              <p className="mt-1 text-sm text-text-muted">
-                All notes saved in this folder.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-
-              {/* Search */}
-              <div className="relative w-full sm:w-64">
-
-                <Search
-                  size={16}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
-                />
-
-                <Input
-                  value={search}
-                  onChange={(event) => handleSearch(event.target.value)}
-                  placeholder="Search notes..."
-                  className="border-white/70 bg-white/70 pl-10 pr-10 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-black/25"
-                />
-
-                {search && (
-                  <button
-                    type="button"
-                    onClick={() => handleSearch('')}
-                    aria-label="Clear search"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted transition hover:text-text-main"
-                  >
-                    <X size={15} />
-                  </button>
-                )}
+                <p className="mt-1 text-sm text-text-muted">
+                  Your collection, organized in one place.
+                </p>
 
               </div>
 
-              {/* Grid / List */}
-              <div className="flex shrink-0 items-center gap-1 rounded-xl border border-white/70 bg-white/65 p-1 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-black/25">
+            </div>
 
+            {/* Header actions */}
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+
+              <Button
+                variant="outline"
+                onClick={() => navigate('/app/folders')}
+                className="shrink-0"
+              >
+                <ArrowLeft size={15} />
+                <span className="hidden sm:inline">All Folders</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => refetch()}
+                loading={isFetching}
+                disabled={isFetching}
+                className="shrink-0"
+                title="Refresh folder"
+              >
+                <RefreshCw size={15} />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+
+              <Button
+                onClick={() => navigate('/app/notes')}
+                className="flex-1 justify-center sm:flex-none"
+              >
+                <Plus size={16} />
+                Browse Notes
+              </Button>
+
+            </div>
+
+          </div>
+
+          {/* Decorative divider */}
+          <div className="mt-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border/60" />
+            <FolderOpen size={14} className="text-accent/70" />
+            <div className="h-px flex-1 bg-border/60" />
+          </div>
+
+        </header>
+
+        {/* Search panel */}
+        <section className={`${glass} mb-7 rounded-3xl p-3.5 sm:p-5`}>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+
+            {/* Search */}
+            <div className="relative min-w-0 flex-1">
+
+              <Search
+                size={18}
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
+              />
+
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => handleSearch(event.target.value)}
+                placeholder="Search notes by title or content..."
+                aria-label="Search folder notes"
+                className="h-12 w-full rounded-2xl border border-border/70 bg-input/60 pl-11 pr-10 text-sm text-text-main outline-none backdrop-blur-xl transition-all placeholder:text-text-muted focus:border-accent focus:ring-2 focus:ring-accent/15"
+              />
+
+              {search && (
                 <button
                   type="button"
-                  onClick={() => setView('grid')}
-                  aria-label="Grid view"
-                  aria-pressed={view === 'grid'}
-                  className={`flex h-9 w-10 items-center justify-center rounded-lg transition ${
-                    view === 'grid'
-                      ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400'
-                      : 'text-text-muted hover:bg-white/60 dark:hover:bg-white/10'
-                  }`}
+                  onClick={() => handleSearch('')}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-text-muted transition hover:bg-accent/10 hover:text-accent"
                 >
-                  <LayoutGrid size={17} />
+                  <X size={15} />
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => setView('list')}
-                  aria-label="List view"
-                  aria-pressed={view === 'list'}
-                  className={`flex h-9 w-10 items-center justify-center rounded-lg transition ${
-                    view === 'list'
-                      ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400'
-                      : 'text-text-muted hover:bg-white/60 dark:hover:bg-white/10'
-                  }`}
-                >
-                  <List size={18} />
-                </button>
-
-              </div>
-
-            </div>
-          </div>
-
-          {noteItems.length > 0 && (
-            <div className="flex items-center justify-between border-b border-border/50 pb-4">
-
-              <span className="text-xs font-medium text-text-muted">
-                {filteredNotes.length}{' '}
-                {filteredNotes.length === 1 ? 'note' : 'notes'}
-              </span>
-
-              {filteredNotes.length > 0 && (
-                <span className="text-xs text-text-muted">
-                  Showing {visibleNotes.length} of {filteredNotes.length}
-                </span>
               )}
+
+            </div>
+
+            {/* Sorting */}
+            <div className="flex items-center gap-2 sm:w-auto">
+
+              <span className="hidden items-center gap-1.5 text-xs font-medium text-text-muted sm:flex">
+                <ArrowDownUp size={14} />
+                Sort
+              </span>
+
+              <Select
+                value={sort}
+                onChange={(event) => setSort(event.target.value)}
+                className="h-12 w-full sm:w-48"
+              >
+                <option value="updated">Recently updated</option>
+                <option value="created">Recently created</option>
+                <option value="title">Title (A-Z)</option>
+              </Select>
+
+            </div>
+
+          </div>
+
+          {/* Search information */}
+          {hasSearch && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
+
+              <p className="text-xs text-text-muted">
+                Showing {filteredNotes.length} result
+                {filteredNotes.length !== 1 ? 's' : ''} for{' '}
+                <strong className="text-text-main">
+                  "{search}"
+                </strong>
+              </p>
+
+              <button
+                type="button"
+                onClick={() => handleSearch('')}
+                className="text-xs font-semibold text-accent hover:underline"
+              >
+                Clear search
+              </button>
 
             </div>
           )}
 
-        </div>
+        </section>
 
-        {/* Empty folder */}
-        {noteItems.length === 0 ? (
+        {/* Collection toolbar */}
+        <section className="mb-5 flex flex-wrap items-end justify-between gap-3">
 
-          <div className="rounded-[22px] border border-white/70 bg-white/70 px-5 py-12 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-black/25">
+          <div>
+
+            <div className="flex items-center gap-2">
+              <Folder size={17} className="text-accent" />
+
+              <h2 className="text-lg font-bold tracking-tight text-text-main sm:text-xl">
+                Folder Collection
+              </h2>
+            </div>
+
+            <p className="mt-1 text-xs text-text-muted sm:text-sm">
+              All notes saved inside this folder.
+            </p>
+
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+
+            {/* View toggle */}
+            <div className="flex items-center gap-1 rounded-xl border border-border/60 bg-card/55 p-1 backdrop-blur-xl">
+
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                aria-label="Grid view"
+                aria-pressed={viewMode === 'grid'}
+                className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${
+                  viewMode === 'grid'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-text-muted hover:bg-accent/10 hover:text-accent'
+                }`}
+              >
+                <LayoutGrid size={17} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                aria-label="List view"
+                aria-pressed={viewMode === 'list'}
+                className={`flex h-9 w-9 items-center justify-center rounded-lg transition ${
+                  viewMode === 'list'
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'text-text-muted hover:bg-accent/10 hover:text-accent'
+                }`}
+              >
+                <List size={18} />
+              </button>
+
+            </div>
+
+            {/* Result count */}
+            <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-card/55 px-3 py-2 text-xs font-medium text-text-muted backdrop-blur-xl">
+              <FileText size={14} />
+              {filteredNotes.length} results
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* Notes collection */}
+        {filteredNotes.length === 0 ? (
+
+          hasSearch ? (
+
+            <div className={`${glass} rounded-3xl px-5 py-14 text-center sm:py-16`}>
+
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                <SearchX size={27} strokeWidth={1.8} />
+              </div>
+
+              <h3 className="text-lg font-semibold text-text-main">
+                No matching notes
+              </h3>
+
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-text-muted">
+                Try another keyword to find the note you are looking for.
+              </p>
+
+              <Button
+                variant="outline"
+                className="mt-6"
+                onClick={() => handleSearch('')}
+              >
+                <RefreshCw size={15} />
+                Clear search
+              </Button>
+
+            </div>
+
+          ) : (
 
             <EmptyState
               icon={FolderOpen}
-              title="Folder is empty"
-              description="Browse your notes and organize them into this folder."
+              title="This folder is empty"
+              description="Browse your notes and organize them into this folder. Your saved notes will appear here."
               action={
-                <Button
-                  onClick={() => navigate('/app/notes')}
-                  className="bg-[#B8326B] text-white hover:bg-[#9F285B]"
-                >
+                <Button onClick={() => navigate('/app/notes')}>
                   <Plus size={15} />
-                  Browse notes
+                  Browse Notes
                 </Button>
               }
             />
 
-          </div>
-
-        ) : filteredNotes.length === 0 ? (
-
-          /* No search results */
-          <div className="rounded-[22px] border border-white/70 bg-white/70 px-5 py-12 text-center shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-black/25">
-
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
-              <Search size={22} />
-            </div>
-
-            <h3 className="font-semibold text-text-main">
-              No matching notes
-            </h3>
-
-            <p className="mt-1 text-sm text-text-muted">
-              Try searching with another title or keyword.
-            </p>
-
-            <Button
-              variant="ghost"
-              onClick={() => handleSearch('')}
-              className="mt-3"
-            >
-              <X size={15} />
-              Clear search
-            </Button>
-
-          </div>
+          )
 
         ) : (
 
           <>
-            {/* Original NoteCard component */}
+
+            {/* Notes grid / list */}
             <div
               className={
-                view === 'grid'
-                  ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+                viewMode === 'grid'
+                  ? 'grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3'
                   : 'flex flex-col gap-4'
               }
             >
+
               {visibleNotes.map((note) => (
                 <NoteCard
                   key={note.id}
                   note={note}
                 />
               ))}
+
             </div>
 
-            {/* Show More */}
-            {hasMore && (
-              <div className="mt-8 flex justify-center">
+            {/* Show more */}
+            {filteredNotes.length > visibleCount && (
+              <div className="mt-7 flex justify-center">
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    setVisibleCount((count) => count + 6);
-                  }}
-                  className="border-rose-200 bg-white/70 text-rose-600 shadow-sm backdrop-blur-xl hover:bg-rose-50 dark:border-rose-900/50 dark:bg-black/25 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                  onClick={() => setVisibleCount((count) => count + 6)}
                 >
-                  Show More
-                  <ChevronDown size={16} />
+                  <FileText size={15} />
+                  Show more ({Math.min(6, filteredNotes.length - visibleCount)})
                 </Button>
               </div>
             )}
 
+            {/* Show less */}
+            {visibleCount > 6 && filteredNotes.length > 6 && (
+              <div className="mt-3 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount(6)}
+                  className="rounded-lg px-3 py-2 text-xs font-semibold text-text-muted transition hover:bg-accent/10 hover:text-accent"
+                >
+                  Show less
+                </button>
+              </div>
+            )}
+
           </>
+
         )}
 
-      </div>
+        {/* Footer */}
+        {filteredNotes.length > 0 && (
+          <footer className="mt-8 flex flex-wrap items-center justify-center gap-2 border-t border-border/50 pt-5 text-center text-xs text-text-muted">
+            <Sparkles size={14} className="text-accent" />
+            <span>
+              Your notes, organized and accessible whenever you need them.
+            </span>
+          </footer>
+        )}
+
+      </main>
     </div>
   );
 }
