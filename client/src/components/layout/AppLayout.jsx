@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom';
 
 import { Sidebar } from '../navigation/Sidebar.jsx';
 import { TopBar } from '../navigation/TopBar.jsx';
+import { FloatingPetals } from '../ui/FloatingPetals.jsx';
 
 import lavenderBg from '../../../assets/background/favv1.png';
 
@@ -13,33 +14,63 @@ export default function AppLayout() {
 
   return (
     <div
-      className="relative flex h-screen overflow-hidden"
+      className="
+        relative isolate
+        flex h-screen
+        overflow-hidden
+        bg-[#f8f5ff]
+        dark:bg-[#17131d]
+      "
       style={{
-        backgroundColor: '#f8f5ff',
         backgroundImage: `url(${lavenderBg})`,
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center center',
-
-        // Preserve image aspect ratio on every screen
         backgroundSize: 'cover',
       }}
     >
-      {/* Background Overlay */}
-      <div className="pointer-events-none absolute inset-0 z-0 bg-white/15 dark:bg-black/25" />
+      {/* Background overlay */}
+      <div
+        aria-hidden="true"
+        className="
+          pointer-events-none
+          absolute inset-0 z-0
+          bg-white/15
+          dark:bg-black/25
+        "
+      />
+
+      {/* Global floating petals */}
+      <FloatingPetals />
 
       {/* Sidebar */}
       <Sidebar
         collapsed={collapsed}
-        onToggle={() => setCollapsed((prev) => !prev)}
+        setCollapsed={setCollapsed}
         mobileOpen={mobileOpen}
-        onCloseMobile={() => setMobileOpen(false)}
+        setMobileOpen={setMobileOpen}
       />
 
-      {/* Main Content */}
-      <div className="relative z-10 flex min-w-0 min-h-0 flex-1 flex-col">
-        <TopBar onOpenMobile={() => setMobileOpen(true)} />
+      {/* Main application area */}
+      <div
+        className="
+          relative z-10
+          flex min-w-0 min-h-0
+          flex-1 flex-col
+        "
+      >
+        {/* Top navigation */}
+        <TopBar
+          onOpenMobile={() => setMobileOpen(true)}
+        />
 
-        <main className="min-h-0 flex-1 overflow-y-auto">
+        {/* Page content */}
+        <main
+          className="
+            relative min-h-0
+            flex-1 overflow-y-auto
+            overflow-x-hidden
+          "
+        >
           <Outlet />
         </main>
       </div>

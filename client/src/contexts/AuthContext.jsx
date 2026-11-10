@@ -1,14 +1,13 @@
-// src/contexts/AuthContext.jsx
-// Holds the Supabase session + the user's profile (parent theme, settings).
-//
-// Performance notes:
-//   - `onAuthStateChange` fires for many reasons (token refresh, sign in,
-//     sign out, etc.). We only refetch the profile when the *user id* actually
-//     changes — this avoids redundant /profile calls on every token refresh.
-//   - The profile is cached on the client too — we never refetch if we already
-//     have one for the current user (unless `refreshProfile()` is called
-//     explicitly, e.g. after saving settings).
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from 'react';
+
 import { supabase } from '../lib/supabaseClient.js';
 import { api } from '../lib/apiClient.js';
 
@@ -19,72 +18,171 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+
   const lastUserIdRef = useRef(null);
+  const mountedRef = useRef(false);
+  const refreshRequestRef = useRef(0);
 
-const refreshProfile = useCallback(async () => {
-  try {
-    const p = await api.get('/profile');
+  // ---------------------------------------------------------------------------
+  // Refresh profile
+  // ---------------------------------------------------------------------------
 
-    if (p) {
-      setProfile(p);
-      return p;
+  const refreshProfile = useCallback(async () => {
+    const requestId = ++refreshRequestRef.current;
+
+    try {
+      // apiClient already unwraps payload.data.
+      const updatedProfile = await api.get('/profile');
+
+      if (
+        !updatedProfile ||
+        typeof updatedProfile !== 'object' ||
+        Array.isArray(updatedProfile) ||
+        !updatedProfile.id
+      ) {
+        console.error(
+          '[BloomNotes] Unexpected profile response:',
+          updatedProfile
+        );
+
+        throw new Error('Invalid profile response from server.');
+      }
+
+      if (
+        mountedRef.current &&
+        requestId === refreshRequestRef.current
+      ) {
+        setProfile(updatedProfile);
+      }
+
+      return updatedProfile;
+    } catch (error) {
+      console.error(
+        '[BloomNotes] Unable to refresh profile:',
+        error
+      );
+
+      throw error;
     }
+  }, []);
 
-    return null;
-  } catch (error) {
-    console.error('[BloomNotes] Profile refresh failed:', error);
-    return null;
-  }
-}, []);
+  // ---------------------------------------------------------------------------
+  // Authentication state
+  // ---------------------------------------------------------------------------
 
   useEffect(() => {
-    let mounted = true;
+    mountedRef.current = true;
+    let active = true;
 
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!mounted) return;
-      const s = data.session;
-      setSession(s);
-      setUser(s?.user || null);
-      lastUserIdRef.current = s?.user?.id || null;
-      if (s?.user) await refreshProfile();
-      setLoading(false);
-    });
+    const handleSession = (newSession) => {
+      if (!active) return;
 
-    // Only refetch profile when the user identity changes (login/logout).
-    // Token refresh events reuse the existing profile — no need to refetch.
-    const { data: sub } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      if (!mounted) return;
       const newUser = newSession?.user || null;
       const newUserId = newUser?.id || null;
 
       setSession(newSession);
       setUser(newUser);
 
-      // Only refetch profile if the user identity actually changed.
-      if (newUserId !== lastUserIdRef.current) {
-        lastUserIdRef.current = newUserId;
-        if (newUser) {
-          await refreshProfile();
-        } else {
-          setProfile(null);
-        }
+      if (newUserId === lastUserIdRef.current) {
+        return;
       }
-    });
+
+      lastUserIdRef.current = newUserId;
+
+      // Invalidate pending requests from previous sessions.
+      refreshRequestRef.current += 1;
+
+      if (newUserId) {
+        setProfile(null);
+
+        void refreshProfile().catch(() => {});
+      } else {
+        setProfile(null);
+      }
+    };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        handleSession(newSession);
+      }
+    );
+
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (!active) return;
+
+        if (error) throw error;
+
+        handleSession(data?.session || null);
+      })
+      .catch((error) => {
+        if (!active) return;
+
+        console.error(
+          '[BloomNotes] Unable to get session:',
+          error
+        );
+
+        refreshRequestRef.current += 1;
+        lastUserIdRef.current = null;
+
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
 
     return () => {
-      mounted = false;
-      sub?.subscription?.unsubscribe();
+      active = false;
+      mountedRef.current = false;
+      refreshRequestRef.current += 1;
+      subscription?.unsubscribe();
     };
   }, [refreshProfile]);
 
+  // ---------------------------------------------------------------------------
+  // Sign out
+  // ---------------------------------------------------------------------------
+
   const signOut = useCallback(async () => {
-    try { await api.post('/auth/logout'); } catch { /* ignore */ }
-    await supabase.auth.signOut();
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error(
+        '[BloomNotes] Backend logout failed:',
+        error
+      );
+    }
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error(
+        '[BloomNotes] Supabase logout failed:',
+        error
+      );
+
+      throw error;
+    }
+
+    refreshRequestRef.current += 1;
+    lastUserIdRef.current = null;
+
     setProfile(null);
     setUser(null);
     setSession(null);
-    lastUserIdRef.current = null;
   }, []);
+
+  // ---------------------------------------------------------------------------
+  // Context
+  // ---------------------------------------------------------------------------
 
   const value = {
     session,
@@ -96,11 +194,25 @@ const refreshProfile = useCallback(async () => {
     setProfile,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
+
+// -----------------------------------------------------------------------------
+// Hook
+// -----------------------------------------------------------------------------
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+
+  if (!ctx) {
+    throw new Error(
+      'useAuth must be used within AuthProvider'
+    );
+  }
+
   return ctx;
 }

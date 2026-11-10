@@ -1,6 +1,6 @@
 // src/pages/dashboard/Search.jsx
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
@@ -13,7 +13,7 @@ import {
   CardHeader,
 } from '../../components/ui/Card.jsx';
 
-import { Input } from '../../components/ui/Input.jsx';
+import { Button } from '../../components/ui/Button.jsx';
 
 import {
   Search as SearchIcon,
@@ -29,11 +29,13 @@ import {
   FileSearch,
   Command,
   ArrowRight,
+  RefreshCw,
+  SearchX,
 } from 'lucide-react';
 
 import { cn } from '../../lib/utils.js';
 
-import lavenderBg from '../../../assets/background/favv1.png';
+import lavenderBg from '../../../assets/background/favv.png';
 
 const SEARCH_SECTIONS = [
   {
@@ -114,6 +116,9 @@ const SEARCH_SECTIONS = [
   },
 ];
 
+// Real-time search debounce (ms)
+const DEBOUNCE_MS = 300;
+
 export default function Search() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
@@ -121,277 +126,313 @@ export default function Search() {
   const q = params.get('q') || '';
   const [input, setInput] = useState(q);
 
+  // Sync local input when the URL query changes (back/forward navigation)
   useEffect(() => {
     setInput(q);
   }, [q]);
+
+  // ✅ Real-time search: debounce input → URL update → query fires
+  useEffect(() => {
+    const trimmed = input.trim();
+
+    // Skip if input already matches URL (avoids update loops)
+    if (trimmed === q.trim()) return;
+
+    const t = setTimeout(() => {
+      if (trimmed) {
+        setParams({ q: trimmed }, { replace: true });
+      } else {
+        setParams({}, { replace: true });
+      }
+    }, DEBOUNCE_MS);
+
+    return () => clearTimeout(t);
+  }, [input, q, setParams]);
 
   const {
     data,
     isFetching,
     isError,
+    refetch,
   } = useQuery({
     queryKey: ['search', q],
     queryFn: () => searchApi.global(q),
     enabled: q.trim().length > 0,
   });
 
-  const submit = (e) => {
-    e.preventDefault();
+  const returnToDashboard = () => {
+    setInput('');
+    setParams({});
+    navigate('/dashboard', { replace: true });
+  };
 
+  // ✅ Enter dabane par turant search (debounce skip)
+  const submit = (event) => {
+    event.preventDefault();
     const value = input.trim();
-
     if (value) {
       setParams({ q: value });
     } else {
-      setParams({});
+      returnToDashboard();
     }
   };
 
-  const clearSearch = () => {
+  const clearInput = () => {
     setInput('');
     setParams({});
   };
 
-  const sections = SEARCH_SECTIONS.map((section) => ({
-    ...section,
-    items: section.getItems(data, navigate),
-  }));
+  const sections = useMemo(
+    () =>
+      SEARCH_SECTIONS.map((section) => ({
+        ...section,
+        items: section.getItems(data, navigate),
+      })),
+    [data, navigate]
+  );
 
   const totalResults = sections.reduce(
     (total, section) => total + section.items.length,
     0
   );
 
+  const hasQuery = Boolean(q.trim());
+
   return (
-    <div className="relative isolate min-h-full overflow-hidden bg-[#FFF8FC] dark:bg-[#17131F]">
+    <div
+      className="relative isolate min-h-full overflow-hidden bg-transparent"
+      style={{
+        backgroundImage: `url(${lavenderBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed',
+      }}
+    >
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-white/30 dark:bg-slate-950/80" />
 
-      {/* Floral Background */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
-      >
-        <img
-          src={lavenderBg}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover object-center"
-        />
-
-        <div className="absolute inset-0 bg-white/55 dark:bg-[#17131F]/80" />
-
-        <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-white/40 dark:from-transparent dark:to-[#17131F]/40" />
-      </div>
-
-      {/* Main Content */}
-      <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
-
-        {/* Page Header */}
-        <section className="mb-8">
-
-          <div className="flex items-center gap-3">
-
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/80 bg-white/75 text-[#B65F8D] shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/10 dark:text-[#E9A7C3]">
-              <SearchIcon size={22} strokeWidth={1.8} />
-            </div>
-
-            <div className="min-w-0">
-              <div className="mb-1 flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#B66B91] dark:text-[#E5A5C0]">
-                  Workspace
-                </span>
-
-                <span className="h-1 w-1 rounded-full bg-[#C98BA7]" />
-
-                <span className="text-[10px] font-medium text-[#987C8C] dark:text-[#BCA8B5]">
-                  Quick discovery
-                </span>
+      <main className="relative mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 lg:px-9 lg:py-9">
+        {/* Page header */}
+        <header className="mb-7 sm:mb-9">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border/60 bg-card/70 text-accent shadow-sm backdrop-blur-xl sm:h-14 sm:w-14">
+                <SearchIcon size={25} strokeWidth={1.8} />
               </div>
 
-              <h1 className="text-2xl font-semibold tracking-tight text-[#382832] sm:text-3xl dark:text-white">
-                Search
-              </h1>
-
-              <p className="mt-1 text-xs text-[#806D79] sm:text-sm dark:text-[#C5B4BE]">
-                Find everything across your BloomNotes workspace.
-              </p>
-            </div>
-
-          </div>
-
-        </section>
-
-        {/* Search Panel */}
-        <section className="mb-8">
-
-          <div className="rounded-[22px] border border-white/75 bg-white/65 p-3 shadow-[0_8px_30px_rgba(100,55,80,0.07)] backdrop-blur-2xl sm:p-5 dark:border-white/10 dark:bg-[#241B29]/70">
-
-            <div className="mb-3 flex items-center justify-between gap-2 px-1">
-              <div>
-                <h2 className="text-sm font-semibold text-[#44313D] dark:text-white">
-                  What are you looking for?
-                </h2>
-
-                <p className="mt-0.5 text-xs text-[#907C88] dark:text-[#BCAAB5]">
-                  Search across all your saved content.
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-bold tracking-tight text-text-main sm:text-3xl">
+                    Search
+                  </h1>
+                  <span className="rounded-full border border-border/60 bg-card/60 px-2.5 py-1 text-[11px] font-semibold text-text-muted backdrop-blur-xl">
+                    Workspace
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-text-muted">
+                  Find notes, folders, tags, journal entries and files in one place.
                 </p>
               </div>
-
-              <div className="hidden items-center gap-1.5 rounded-lg border border-[#EBDCE4] bg-white/65 px-2 py-1.5 text-[10px] font-medium text-[#927E89] sm:flex dark:border-white/10 dark:bg-white/5 dark:text-[#C4B3BE]">
-                <Command size={12} />
-                Search
-              </div>
             </div>
 
-            <form onSubmit={submit}>
-              <div className="group relative">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              {hasQuery && (
+                <Button
+                  variant="outline"
+                  onClick={returnToDashboard}
+                  className="w-full justify-center sm:w-auto"
+                >
+                  <ArrowRight size={15} />
+                  Dashboard
+                </Button>
+              )}
+            </div>
+          </div>
 
-                <SearchIcon
-                  size={19}
-                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#B17A94] transition-colors group-focus-within:text-[#B65F8D] dark:text-[#C38CA6]"
-                />
+          <div className="mt-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border/60" />
+            <SearchIcon size={14} className="text-accent/70" />
+            <div className="h-px flex-1 bg-border/60" />
+          </div>
+        </header>
 
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Search notes, folders, journal, vault..."
-                  className="h-12 w-full rounded-xl border border-[#EADAE3] bg-white/90 pl-11 pr-12 text-sm text-[#44313D] shadow-sm outline-none transition-all placeholder:text-[#AD9AA4] focus:border-[#CE8EAD] focus:ring-2 focus:ring-[#CE8EAD]/15 sm:h-14 dark:border-white/10 dark:bg-[#302632]/90 dark:text-white dark:placeholder:text-[#A995A4]"
-                  autoFocus
-                />
+        {/* Search panel */}
+        <section className="bn-glass-card mb-7 rounded-3xl p-3.5 sm:p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1">
+            <div>
+              <h2 className="text-sm font-semibold text-text-main">
+                Search your workspace
+              </h2>
+              <p className="mt-0.5 text-xs text-text-muted">
+                Start typing — results appear as you type.
+              </p>
+            </div>
+          </div>
 
+          <form onSubmit={submit}>
+            <div className="relative">
+              <SearchIcon
+                size={18}
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
+              />
+
+              {/*
+                ✅ type="text" instead of "search" — native browser clear (X)
+                button render nahi hoga, isliye double cross nahi aayega.
+              */}
+              <input
+                type="text"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="Search notes, folders, journal, tags and vault..."
+                aria-label="Search workspace"
+                autoFocus
+                spellCheck={false}
+                autoComplete="off"
+                className="h-12 w-full rounded-2xl border border-border/70 bg-input/60 pl-11 pr-24 text-sm text-text-main outline-none backdrop-blur-xl transition-all placeholder:text-text-muted focus:border-accent focus:ring-2 focus:ring-accent/15 sm:h-14"
+              />
+
+              <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
                 {input && (
                   <button
                     type="button"
-                    onClick={clearSearch}
+                    onClick={clearInput}
                     aria-label="Clear search"
-                    className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#A17D90] transition-colors hover:bg-[#F9EAF1] hover:text-[#B65F8D] dark:text-[#C2A4B4] dark:hover:bg-white/10"
+                    title="Clear search"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition hover:bg-accent/10 hover:text-accent"
                   >
-                    <X size={16} />
+                    <X size={15} />
                   </button>
                 )}
 
+                <button
+                  type="submit"
+                  disabled={!input.trim()}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-xl bg-accent px-3 text-xs font-semibold text-white shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  <SearchIcon size={13} />
+                  <span className="hidden sm:inline">Search</span>
+                </button>
               </div>
+            </div>
+          </form>
 
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1">
-
-                <p className="text-[11px] text-[#957F8B] dark:text-[#BBA9B4]">
-                  Search notes, tags, folders and more.
-                </p>
-
-                <span className="text-[10px] font-medium text-[#A38D99] dark:text-[#BBA9B4]">
-                  Press Enter to search
-                </span>
-
-              </div>
-            </form>
-
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 px-1 pt-3">
+            <p className="text-xs text-text-muted">
+              Results update automatically as you type.
+            </p>
+            {hasQuery && (
+              <button
+                type="button"
+                onClick={clearInput}
+                className="text-xs font-semibold text-accent transition hover:underline"
+              >
+                Clear search
+              </button>
+            )}
           </div>
-
         </section>
 
-        {/* Initial State */}
-        {!q && (
-          <div className="overflow-hidden rounded-[22px] border border-white/75 bg-white/55 px-5 py-14 text-center shadow-[0_8px_30px_rgba(100,55,80,0.05)] backdrop-blur-xl sm:py-16 dark:border-white/10 dark:bg-[#241B29]/65">
-
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[20px] border border-white/80 bg-white/80 text-[#B65F8D] shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-[#E9A7C3]">
-              <FileSearch size={29} strokeWidth={1.5} />
+        {/* Initial state */}
+        {!hasQuery && (
+          <section className="bn-glass-card rounded-3xl px-5 py-14 text-center sm:py-16">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-border/60 bg-card/70 text-accent shadow-sm">
+              <FileSearch size={27} strokeWidth={1.7} />
             </div>
 
-            <h2 className="text-lg font-semibold tracking-tight text-[#44313D] dark:text-white">
-              Search your workspace
+            <h2 className="text-lg font-semibold tracking-tight text-text-main">
+              Find anything in your workspace
             </h2>
-
-            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#907C88] dark:text-[#C0AFB9]">
-              Enter a keyword to discover your notes, folders, tags,
-              journal entries, personal space and vault files.
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-text-muted">
+              Search across notes, folders, tags, journal entries, personal space and private vault files.
             </p>
 
             <div className="mt-6 flex flex-wrap justify-center gap-2">
-              {['Notes', 'Folders', 'Journal', 'Vault'].map((item) => (
+              {[
+                { label: 'Notes', icon: NotebookPen },
+                { label: 'Folders', icon: FolderTree },
+                { label: 'Tags', icon: Tag },
+                { label: 'Journal', icon: BookOpen },
+                { label: 'Vault', icon: Lock },
+              ].map(({ label, icon: Icon }) => (
                 <span
-                  key={item}
-                  className="rounded-full border border-white/80 bg-white/70 px-3 py-1.5 text-[11px] font-medium text-[#99798B] shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-[#C6A9B8]"
+                  key={label}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/55 px-3 py-1.5 text-[11px] font-medium text-text-muted backdrop-blur-xl"
                 >
-                  {item}
+                  <Icon size={12} className="text-accent" />
+                  {label}
                 </span>
               ))}
             </div>
-
-          </div>
+          </section>
         )}
 
-        {/* Loading State */}
-        {q && isFetching && (
-          <div className="rounded-[22px] border border-white/75 bg-white/60 px-5 py-14 text-center shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-[#241B29]/65">
-
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F9EAF1] text-[#B65F8D] dark:bg-white/10 dark:text-[#E9A7C3]">
+        {/* Loading state */}
+        {hasQuery && isFetching && (
+          <section className="bn-glass-card rounded-3xl px-5 py-14 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
               <Loader2 size={22} className="animate-spin" />
             </div>
-
-            <p className="text-sm font-semibold text-[#44313D] dark:text-white">
+            <p className="text-sm font-semibold text-text-main">
               Searching your workspace
             </p>
-
-            <p className="mt-1 text-xs text-[#957F8B] dark:text-[#BBA9B4]">
-              Finding matching content...
+            <p className="mt-1 text-xs text-text-muted">
+              Looking for matching notes, folders and files...
             </p>
-
-          </div>
+          </section>
         )}
 
-        {/* Error State */}
-        {q && !isFetching && isError && (
-          <div className="rounded-[22px] border border-red-200/80 bg-red-50/80 px-5 py-12 text-center backdrop-blur-xl dark:border-red-900/40 dark:bg-red-950/30">
-
-            <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-red-100 text-red-500 dark:bg-red-900/30 dark:text-red-300">
-              <X size={21} />
+        {/* Error state */}
+        {hasQuery && !isFetching && isError && (
+          <section className="bn-glass-card rounded-3xl border border-danger/20 px-5 py-12 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-danger/10 text-danger">
+              <SearchX size={22} />
             </div>
-
-            <p className="text-sm font-semibold text-red-600 dark:text-red-400">
-              Something went wrong
+            <h2 className="text-base font-semibold text-text-main">
+              Search could not be completed
+            </h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-text-muted">
+              Something went wrong while searching. Please try again.
             </p>
-
-            <p className="mt-1 text-xs text-red-500 dark:text-red-300">
-              We couldn't complete your search. Please try again.
-            </p>
-
-          </div>
+            <Button
+              variant="outline"
+              className="mt-5"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              <RefreshCw size={14} />
+              Try again
+            </Button>
+          </section>
         )}
 
-        {/* Search Results */}
-        {q && !isFetching && !isError && data && (
+        {/* Search results */}
+        {hasQuery && !isFetching && !isError && data && (
           <div className="space-y-5">
-
-            {/* Result Summary */}
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/75 bg-white/55 px-4 py-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-[#241B29]/65">
-
+            <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card/55 px-4 py-3 backdrop-blur-xl">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-semibold text-[#44313D] dark:text-white">
+                  <h2 className="text-sm font-semibold text-text-main">
                     Search results
                   </h2>
-
-                  <span className="h-1 w-1 rounded-full bg-[#C98BA7]" />
-
-                  <span className="text-[11px] text-[#927D89] dark:text-[#BBA9B4]">
-                    {totalResults} matches
+                  <span className="h-1 w-1 rounded-full bg-accent/70" />
+                  <span className="text-[11px] text-text-muted">
+                    {totalResults} {totalResults === 1 ? 'match' : 'matches'}
                   </span>
                 </div>
-
-                <p className="mt-1 truncate text-xs text-[#927D89] dark:text-[#BBA9B4]">
-                  Results for "{q}"
+                <p className="mt-1 truncate text-xs text-text-muted">
+                  Results for <span className="font-semibold text-text-main">“{q}”</span>
                 </p>
               </div>
 
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[#EBD6E1] bg-[#FFF5F9] px-3 py-2 text-xs font-semibold text-[#B65F8D] dark:border-white/10 dark:bg-white/5 dark:text-[#E9A7C3]">
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border/60 bg-card/70 px-3 py-2 text-xs font-semibold text-accent">
                 <SearchIcon size={13} />
                 {totalResults} found
               </span>
+            </section>
 
-            </div>
-
-            {/* Result Sections */}
             {totalResults > 0 ? (
               <div className="grid grid-cols-1 gap-4">
-
                 {sections.map((section) => (
                   <Section
                     key={section.key}
@@ -401,133 +442,101 @@ export default function Search() {
                     items={section.items}
                   />
                 ))}
-
               </div>
             ) : (
-              <div className="rounded-[22px] border border-white/75 bg-white/55 px-5 py-14 text-center shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-[#241B29]/65">
-
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/80 bg-white/80 text-[#B65F8D] shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-[#E9A7C3]">
-                  <SearchIcon size={24} />
+              <section className="bn-glass-card rounded-3xl px-5 py-14 text-center sm:py-16">
+                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-border/60 bg-card/70 text-accent shadow-sm">
+                  <SearchX size={27} strokeWidth={1.7} />
                 </div>
-
-                <h3 className="text-base font-semibold text-[#44313D] dark:text-white">
-                  No results found
+                <h3 className="text-lg font-semibold text-text-main">
+                  No matching results
                 </h3>
-
-                <p className="mx-auto mt-2 max-w-sm text-sm text-[#927D89] dark:text-[#BBA9B4]">
-                  No matches found for "{q}". Try another keyword.
+                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-text-muted">
+                  We couldn't find anything for “{q}”. Try a different keyword or search phrase.
                 </p>
-
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#BD6D96] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#A95782]"
+                <Button
+                  variant="outline"
+                  className="mt-6"
+                  onClick={clearInput}
                 >
+                  <X size={14} />
                   Clear search
-                  <ArrowRight size={14} />
-                </button>
-
-              </div>
+                </Button>
+              </section>
             )}
-
           </div>
         )}
-
-      </div>
+      </main>
     </div>
   );
 }
 
-/* Search Result Section */
-
+/* Search result section */
 function Section({ icon: Icon, title, description, items }) {
   if (!items?.length) return null;
 
   return (
-    <Card className="group overflow-hidden rounded-[20px] border border-white/75 bg-white/75 shadow-[0_5px_22px_rgba(100,55,80,0.055)] backdrop-blur-2xl transition-shadow duration-200 hover:shadow-[0_9px_28px_rgba(100,55,80,0.09)] dark:border-white/10 dark:bg-[#241B29]/75">
-
-      {/* Section Header */}
-      <CardHeader className="border-b border-[#EEDFE6]/80 px-4 py-4 sm:px-5 dark:border-white/10">
-
+    <Card className="bn-glass-card group overflow-hidden rounded-3xl border border-border/60 bg-card/65 shadow-sm backdrop-blur-xl transition-all duration-200 hover:shadow-md">
+      <CardHeader className="border-b border-border/50 px-4 py-4 sm:px-5">
         <div className="flex items-center justify-between gap-3">
-
           <div className="flex min-w-0 items-center gap-3">
-
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#F0DCE6] bg-[#FFF3F8] text-[#B65F8D] dark:border-white/10 dark:bg-white/5 dark:text-[#E9A7C3]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-card/70 text-accent">
               <Icon size={18} strokeWidth={1.8} />
             </div>
-
             <div className="min-w-0">
-              <CardTitle className="text-sm font-semibold text-[#44313D] dark:text-white">
+              <CardTitle className="text-sm font-semibold text-text-main">
                 {title}
               </CardTitle>
-
-              <p className="mt-0.5 text-[11px] text-[#927D89] dark:text-[#BBA9B4]">
+              <p className="mt-0.5 text-[11px] text-text-muted">
                 {description}
               </p>
             </div>
-
           </div>
 
-          <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-lg bg-[#F9EAF1] px-2 text-xs font-semibold text-[#B65F8D] dark:bg-white/10 dark:text-[#E9A7C3]">
+          <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-lg bg-accent/10 px-2 text-xs font-semibold text-accent">
             {items.length}
           </span>
-
         </div>
-
       </CardHeader>
 
-      {/* Section Results */}
       <CardBody className="p-0">
-
         <ul>
           {items.map((item, index) => (
             <li key={item.id}>
-
               <button
                 type="button"
                 onClick={item.onClick}
                 className={cn(
-                  'group/item flex w-full items-center gap-3 px-4 py-3.5 text-left sm:px-5',
-                  'transition-colors duration-200',
-                  'hover:bg-[#FFF4F8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#D58EAD]',
-                  'dark:hover:bg-white/[0.045]',
-                  index !== items.length - 1 &&
-                    'border-b border-[#F0E4EA]/80 dark:border-white/[0.06]'
+                  'group/item flex w-full min-w-0 items-center gap-3 px-4 py-3.5 text-left sm:px-5',
+                  'transition-colors duration-200 hover:bg-accent/[0.045]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50',
+                  index !== items.length - 1 && 'border-b border-border/45'
                 )}
               >
-
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FAF0F5] text-[#B77A96] transition-colors group-hover/item:bg-[#F5DFE9] dark:bg-white/5 dark:text-[#D9A7BE] dark:group-hover/item:bg-white/10">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-card/70 text-accent transition-colors group-hover/item:bg-accent/10">
                   <FileSearch size={15} />
                 </div>
 
                 <div className="min-w-0 flex-1">
-
-                  <p className="truncate text-sm font-medium text-[#44313D] transition-colors group-hover/item:text-[#B65F8D] dark:text-gray-100 dark:group-hover/item:text-[#E9A7C3]">
+                  <p className="truncate text-sm font-medium text-text-main transition-colors group-hover/item:text-accent">
                     {item.title}
                   </p>
-
                   {item.sub && (
-                    <p className="mt-0.5 truncate text-xs text-[#998590] dark:text-[#BBA9B4]">
+                    <p className="mt-0.5 truncate text-xs text-text-muted">
                       {item.sub}
                     </p>
                   )}
-
                 </div>
 
                 <ArrowUpRight
                   size={16}
-                  className="shrink-0 text-[#B99CAC] transition-all group-hover/item:-translate-y-0.5 group-hover/item:translate-x-0.5 group-hover/item:text-[#B65F8D] dark:text-[#A58D9D]"
+                  className="shrink-0 text-text-muted/70 transition-all group-hover/item:-translate-y-0.5 group-hover/item:translate-x-0.5 group-hover/item:text-accent"
                 />
-
               </button>
-
             </li>
           ))}
         </ul>
-
       </CardBody>
-
     </Card>
   );
 }

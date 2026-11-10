@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -19,6 +20,8 @@ import {
   X,
   RefreshCw,
   ShieldAlert,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 
 import {
@@ -32,6 +35,8 @@ export default function Trash() {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const [search, setSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortOrder, setSortOrder] = useState('newest');
 
   const {
     data,
@@ -59,6 +64,20 @@ export default function Trash() {
     },
   });
 
+  // Restore multiple selected notes
+  const restoreSelected = useMutation({
+    mutationFn: async (ids) => Promise.all(ids.map((id) => notesApi.restore(id))),
+    onSuccess: (_, ids) => {
+      setSelectedIds([]);
+      qc.invalidateQueries({ queryKey: ['notes'] });
+      toast.success(`${ids.length} ${ids.length === 1 ? 'note' : 'notes'} restored successfully`);
+    },
+    onError: () => {
+      qc.invalidateQueries({ queryKey: ['notes'] });
+      toast.error('Some notes could not be restored');
+    },
+  });
+
   // Permanently delete note
   const purge = useMutation({
     mutationFn: (id) => notesApi.permanentDelete(id),
@@ -68,6 +87,23 @@ export default function Trash() {
     },
     onError: () => {
       toast.error('Unable to delete note');
+    },
+  });
+
+  // ✅ Permanently delete multiple selected notes
+  const purgeSelected = useMutation({
+    mutationFn: async (ids) =>
+      Promise.all(ids.map((id) => notesApi.permanentDelete(id))),
+    onSuccess: (_, ids) => {
+      setSelectedIds([]);
+      qc.invalidateQueries({ queryKey: ['notes'] });
+      toast.success(
+        `${ids.length} ${ids.length === 1 ? 'note' : 'notes'} permanently deleted`
+      );
+    },
+    onError: () => {
+      qc.invalidateQueries({ queryKey: ['notes'] });
+      toast.error('Some notes could not be deleted');
     },
   });
 
@@ -88,31 +124,82 @@ export default function Trash() {
 
   const filteredNotes = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return notes;
-
-    return notes.filter((note) => {
+    const result = notes.filter((note) => {
+      if (!query) return true;
       const title = (note.title || 'Untitled').toLowerCase();
       const excerpt = (excerptFromContent(note.content) || '').toLowerCase();
       return title.includes(query) || excerpt.includes(query);
     });
-  }, [notes, search]);
+
+    return [...result].sort((a, b) => {
+      const aDate = new Date(a.updated_at || 0).getTime();
+      const bDate = new Date(b.updated_at || 0).getTime();
+      return sortOrder === 'oldest' ? aDate - bDate : bDate - aDate;
+    });
+  }, [notes, search, sortOrder]);
+
+  const allVisibleSelected =
+    filteredNotes.length > 0 &&
+    filteredNotes.every((note) => selectedIds.includes(note.id));
+
+  const toggleSelected = (id) => {
+    setSelectedIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((current) =>
+      allVisibleSelected
+        ? current.filter((id) => !filteredNotes.some((note) => note.id === id))
+        : [...new Set([...current, ...filteredNotes.map((note) => note.id)])]
+    );
+  };
+
+  const clearSelection = () => setSelectedIds([]);
+
+  const handleRestoreSelected = () => {
+    if (selectedIds.length) restoreSelected.mutate(selectedIds);
+  };
+
+  // ✅ Delete selected with confirmation
+  const handlePurgeSelected = async () => {
+    if (!selectedIds.length) return;
+    const count = selectedIds.length;
+    const ok = await confirm({
+      title: `Permanently delete ${count} ${count === 1 ? 'note' : 'notes'}?`,
+      description: `${count} selected ${count === 1 ? 'note' : 'notes'} will be gone forever. This action cannot be undone.`,
+      confirmText: 'Delete permanently',
+      danger: true,
+    });
+    if (ok) purgeSelected.mutate(selectedIds);
+  };
 
   if (isLoading) {
     return <PageLoader />;
   }
 
   return (
-    <div
-      className="relative isolate min-h-full overflow-hidden bg-transparent"
-      style={{
-        backgroundImage: `url(${lavenderBg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center top',
-        backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'fixed',
-      }}
-    >
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-white/30 dark:bg-slate-950/80" />
+    <>
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <>
+            <div
+              className="pointer-events-none fixed inset-0 z-0"
+              style={{
+                backgroundImage: `url(${lavenderBg})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+              }}
+            />
+            <div className="pointer-events-none fixed inset-0 z-0 bg-white/30 dark:bg-slate-950/80" />
+          </>,
+          document.body
+        )}
+      <div className="relative z-[1] min-h-full overflow-hidden bg-transparent">
 
       <main className="relative mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 lg:px-9 lg:py-9">
         {/* Archive-style page header */}
@@ -263,9 +350,17 @@ export default function Trash() {
                   Restore notes or permanently remove the ones you no longer need.
                 </p>
               </div>
-              <span className="text-xs text-text-muted">
-                Sorted by last updated
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={sortOrder}
+                  onChange={(event) => setSortOrder(event.target.value)}
+                  aria-label="Sort deleted notes"
+                  className="h-9 rounded-xl border border-border/70 bg-card/70 px-3 text-xs font-medium text-text-main outline-none backdrop-blur-xl focus:border-accent/50"
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                </select>
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -275,13 +370,32 @@ export default function Trash() {
                 const isPurging =
                   purge.isPending && purge.variables === note.id;
                 const isBusy = restore.isPending || purge.isPending;
+                const isSelected = selectedIds.includes(note.id);
 
                 return (
                   <article
                     key={note.id}
-                    className="bn-glass-card group rounded-2xl border border-border/60 bg-card/65 shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/30 hover:bg-card/80 hover:shadow-lg"
+                    className="bn-glass-card group relative rounded-2xl border border-border/60 bg-card/65 shadow-sm backdrop-blur-xl"
                   >
                     <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-5">
+                      {/* ✅ Checkbox hidden by default, appears on card hover or when selected */}
+                      <label
+                        className={[
+                          'flex shrink-0 items-center gap-2 transition-opacity duration-150',
+                          isSelected
+                            ? 'opacity-100'
+                            : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100',
+                        ].join(' ')}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelected(note.id)}
+                          aria-label={`Select ${note.title || 'Untitled'}`}
+                          className="h-4 w-4 rounded border-border accent-current"
+                        />
+                      </label>
+
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-rose-200/60 bg-rose-50/80 text-rose-500 dark:border-rose-900/35 dark:bg-rose-950/30 dark:text-rose-400">
                         <FileText size={19} strokeWidth={1.8} />
                       </div>
@@ -354,6 +468,69 @@ export default function Trash() {
           </footer>
         )}
       </main>
-    </div>
+      </div>
+
+      {/* Floating selection toolbar — appears only after selecting a note */}
+      {selectedIds.length > 0 &&
+        createPortal(
+          <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-3 sm:bottom-6 sm:px-4">
+            <div className="pointer-events-auto flex w-full max-w-2xl flex-wrap items-center gap-2 rounded-2xl border border-border/70 bg-card/95 p-2 pl-3 shadow-2xl backdrop-blur-2xl sm:flex-nowrap sm:pl-4">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-lg bg-accent/10 px-1.5 text-xs font-semibold tabular-nums text-accent">
+                  {selectedIds.length}
+                </span>
+                <span className="truncate text-xs font-medium text-text-main">
+                  {selectedIds.length === 1 ? 'note selected' : 'notes selected'}
+                </span>
+              </div>
+
+              <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="inline-flex h-9 items-center rounded-xl px-2.5 text-xs font-medium text-text-muted transition hover:bg-highlight hover:text-text-main sm:px-3"
+                >
+                  {allVisibleSelected ? 'Deselect all' : 'Select all'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-text-muted transition hover:bg-highlight hover:text-text-main"
+                  aria-label="Clear selection"
+                  title="Clear selection"
+                >
+                  <X size={16} />
+                </button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={restoreSelected.isPending}
+                  disabled={restoreSelected.isPending || purgeSelected.isPending}
+                  onClick={handleRestoreSelected}
+                  className="h-9 rounded-xl border-emerald-200/60 bg-emerald-50/80 px-2.5 text-xs text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900/35 dark:bg-emerald-950/30 dark:text-emerald-400 sm:px-3"
+                >
+                  <CheckCircle2 size={14} />
+                  Restore
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={purgeSelected.isPending}
+                  disabled={restoreSelected.isPending || purgeSelected.isPending}
+                  onClick={handlePurgeSelected}
+                  className="h-9 rounded-xl border-rose-200/60 bg-rose-50/80 px-2.5 text-xs text-rose-600 hover:bg-rose-100 dark:border-rose-900/35 dark:bg-rose-950/30 dark:text-rose-400 sm:px-3"
+                >
+                  <XCircle size={14} />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
   );
 }

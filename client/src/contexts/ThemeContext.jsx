@@ -30,11 +30,18 @@ const DARK_NOTE_THEMES = [
   'moonlit_garden',
 ];
 
-// Default theme is LIGHT, never SYSTEM.
+const DEFAULTS = {
+  parentTheme: 'light',
+  floralIntensity: 60,
+  floatingPetals: true,
+  reducedMotion: false,
+  editorFontSize: 15,
+};
+
 function getValidParentTheme(theme) {
   return PARENT_THEMES.includes(theme)
     ? theme
-    : 'light';
+    : DEFAULTS.parentTheme;
 }
 
 function getValidNoteTheme(theme) {
@@ -45,8 +52,6 @@ function getValidNoteTheme(theme) {
     : null;
 }
 
-// Device theme detection.
-// Used only when the user explicitly selects SYSTEM.
 function getSystemTheme() {
   if (
     typeof window === 'undefined' ||
@@ -62,23 +67,28 @@ function getSystemTheme() {
     : 'light';
 }
 
-// Apply theme to document.
+function getValidNumber(value, min, max, fallback) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return fallback;
+
+  return Math.min(max, Math.max(min, number));
+}
+
 function applyDocumentTheme(theme, noteTheme = null) {
   if (typeof document === 'undefined') return;
 
   const root = document.documentElement;
+
+  root.setAttribute('data-theme', theme);
+  root.classList.toggle('dark', theme === 'dark');
+  root.style.colorScheme = theme;
 
   if (noteTheme) {
     root.setAttribute('data-note-theme', noteTheme);
   } else {
     root.removeAttribute('data-note-theme');
   }
-
-  root.setAttribute('data-theme', theme);
-
-  root.classList.toggle('dark', theme === 'dark');
-
-  root.style.colorScheme = theme;
 }
 
 export function ThemeProvider({ children }) {
@@ -86,7 +96,6 @@ export function ThemeProvider({ children }) {
 
   // --------------------------------------------------
   // PARENT THEME
-  // Default: LIGHT
   // --------------------------------------------------
 
   const [parentTheme, setParentThemeState] = useState(() =>
@@ -109,7 +118,35 @@ export function ThemeProvider({ children }) {
   );
 
   // --------------------------------------------------
-  // 1. LISTEN TO SYSTEM THEME CHANGES
+  // PROFILE SETTINGS
+  // --------------------------------------------------
+
+  const floralIntensity = getValidNumber(
+    profile?.floral_intensity,
+    0,
+    100,
+    DEFAULTS.floralIntensity
+  );
+
+  const floatingPetals =
+    typeof profile?.floating_petals === 'boolean'
+      ? profile.floating_petals
+      : DEFAULTS.floatingPetals;
+
+  const reducedMotion =
+    typeof profile?.reduced_motion === 'boolean'
+      ? profile.reduced_motion
+      : DEFAULTS.reducedMotion;
+
+  const editorFontSize = getValidNumber(
+    profile?.editor_font_size,
+    12,
+    32,
+    DEFAULTS.editorFontSize
+  );
+
+  // --------------------------------------------------
+  // 1. SYSTEM THEME LISTENER
   // --------------------------------------------------
 
   useEffect(() => {
@@ -117,7 +154,7 @@ export function ThemeProvider({ children }) {
       typeof window === 'undefined' ||
       typeof window.matchMedia !== 'function'
     ) {
-      return;
+      return undefined;
     }
 
     const mediaQuery = window.matchMedia(
@@ -125,14 +162,10 @@ export function ThemeProvider({ children }) {
     );
 
     const handleSystemThemeChange = (event) => {
-      setSystemTheme(
-        event.matches ? 'dark' : 'light'
-      );
+      setSystemTheme(event.matches ? 'dark' : 'light');
     };
 
-    setSystemTheme(
-      mediaQuery.matches ? 'dark' : 'light'
-    );
+    setSystemTheme(mediaQuery.matches ? 'dark' : 'light');
 
     if (mediaQuery.addEventListener) {
       mediaQuery.addEventListener(
@@ -156,17 +189,15 @@ export function ThemeProvider({ children }) {
   }, []);
 
   // --------------------------------------------------
-  // 2. SYNC THEME FROM USER PROFILE
-  // Only valid saved preferences are applied.
+  // 2. SYNC PARENT THEME FROM PROFILE
   // --------------------------------------------------
 
   useEffect(() => {
-    if (
-      profile?.parent_theme &&
-      PARENT_THEMES.includes(profile.parent_theme)
-    ) {
-      setParentThemeState(profile.parent_theme);
-    }
+    if (!profile) return;
+
+    setParentThemeState(
+      getValidParentTheme(profile.parent_theme)
+    );
   }, [profile?.parent_theme]);
 
   // --------------------------------------------------
@@ -174,11 +205,9 @@ export function ThemeProvider({ children }) {
   // --------------------------------------------------
 
   const resolvedParent = useMemo(() => {
-    if (parentTheme === 'system') {
-      return systemTheme;
-    }
-
-    return parentTheme;
+    return parentTheme === 'system'
+      ? systemTheme
+      : parentTheme;
   }, [parentTheme, systemTheme]);
 
   // --------------------------------------------------
@@ -196,7 +225,7 @@ export function ThemeProvider({ children }) {
   }, [activeNoteTheme, resolvedParent]);
 
   // --------------------------------------------------
-  // 5. APPLY THEME TO DOCUMENT
+  // 5. APPLY DOCUMENT THEME
   // --------------------------------------------------
 
   useEffect(() => {
@@ -213,36 +242,54 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
-    document.documentElement.dataset.reducedMotion =
-      String(Boolean(profile?.reduced_motion));
-  }, [profile?.reduced_motion]);
+    const root = document.documentElement;
+
+    root.dataset.reducedMotion = String(reducedMotion);
+
+    root.classList.toggle(
+      'reduced-motion',
+      reducedMotion
+    );
+  }, [reducedMotion]);
 
   // --------------------------------------------------
-  // 7. EDITOR FONT SIZE
+  // 7. FLORAL SETTINGS
   // --------------------------------------------------
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
-    const fontSize = Number(
-      profile?.editor_font_size
+    const root = document.documentElement;
+
+    root.style.setProperty(
+      '--floral-intensity',
+      String(floralIntensity / 100)
     );
 
-    const validFontSize =
-      Number.isFinite(fontSize) &&
-      fontSize >= 12 &&
-      fontSize <= 32
-        ? fontSize
-        : 15;
+    root.style.setProperty(
+      '--petal-opacity',
+      String((floralIntensity / 100) * 0.72)
+    );
+
+    root.dataset.floatingPetals = String(floatingPetals);
+    root.dataset.floralIntensity = String(floralIntensity);
+  }, [floralIntensity, floatingPetals]);
+
+  // --------------------------------------------------
+  // 8. EDITOR FONT SIZE
+  // --------------------------------------------------
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
 
     document.documentElement.style.setProperty(
       '--editor-font-size',
-      `${validFontSize}px`
+      `${editorFontSize}px`
     );
-  }, [profile?.editor_font_size]);
+  }, [editorFontSize]);
 
   // --------------------------------------------------
-  // 8. CHANGE PARENT THEME
+  // 9. CHANGE PARENT THEME
   // --------------------------------------------------
 
   const setParentTheme = useCallback((theme) => {
@@ -252,7 +299,7 @@ export function ThemeProvider({ children }) {
   }, []);
 
   // --------------------------------------------------
-  // 9. ACTIVATE NOTE THEME
+  // 10. ACTIVATE NOTE THEME
   // --------------------------------------------------
 
   const setActiveNoteTheme = useCallback((theme) => {
@@ -262,7 +309,7 @@ export function ThemeProvider({ children }) {
   }, []);
 
   // --------------------------------------------------
-  // 10. CLEAR NOTE THEME
+  // 11. CLEAR NOTE THEME
   // --------------------------------------------------
 
   const clearActiveNoteTheme = useCallback(() => {
@@ -270,7 +317,7 @@ export function ThemeProvider({ children }) {
   }, []);
 
   // --------------------------------------------------
-  // 11. CONTEXT VALUE
+  // 12. CONTEXT VALUE
   // --------------------------------------------------
 
   const value = useMemo(() => ({
@@ -284,6 +331,11 @@ export function ThemeProvider({ children }) {
     activeNoteTheme,
     setActiveNoteTheme,
     clearActiveNoteTheme,
+
+    floralIntensity,
+    floatingPetals,
+    reducedMotion,
+    editorFontSize,
 
     isDark: resolvedTheme === 'dark',
     isLight: resolvedTheme === 'light',
@@ -302,6 +354,10 @@ export function ThemeProvider({ children }) {
     activeNoteTheme,
     setActiveNoteTheme,
     clearActiveNoteTheme,
+    floralIntensity,
+    floatingPetals,
+    reducedMotion,
+    editorFontSize,
   ]);
 
   return (

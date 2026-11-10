@@ -63,6 +63,7 @@ import {
 } from '../../services/index.js';
 
 import { useTheme } from '../../contexts/ThemeContext.jsx';
+import { useAuth } from '../../contexts/AuthContext.jsx';
 
 import {
   getThemeMeta,
@@ -252,6 +253,8 @@ export default function NoteEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { profile } = useAuth();
+  const autosaveEnabled = profile?.autosave_enabled !== false;
 
   const {
     setActiveNoteTheme,
@@ -430,7 +433,7 @@ export default function NoteEditor() {
           'ProseMirror',
           'w-full min-h-full',
           'px-5 py-6 sm:px-10 sm:py-9',
-          'text-[15px] leading-8',
+          '[font-size:var(--editor-font-size,15px)] leading-8',
           'text-gray-800 dark:text-gray-200',
           'outline-none',
         ].join(' '),
@@ -590,7 +593,7 @@ export default function NoteEditor() {
 
       if (!mountedRef.current) return;
 
-      if (shouldSaveAgain && saveSucceeded) {
+      if (shouldSaveAgain && saveSucceeded && autosaveEnabled) {
         setSaveState('unsaved');
 
         clearTimeout(saveTimerRef.current);
@@ -598,11 +601,14 @@ export default function NoteEditor() {
         saveTimerRef.current = setTimeout(() => {
           saveNowRef.current?.();
         }, SAVE_RETRY_DELAY);
+      } else if (shouldSaveAgain && saveSucceeded) {
+        clearTimeout(saveTimerRef.current);
+        setSaveState('unsaved');
       } else if (saveSucceeded) {
         setSaveState('saved');
       }
     }
-  }, [getCurrentSnapshot, isNew, qc]);
+  }, [getCurrentSnapshot, isNew, qc, autosaveEnabled]);
 
   saveNowRef.current = saveNow;
 
@@ -613,16 +619,27 @@ export default function NoteEditor() {
   const scheduleSave = useCallback(() => {
     if (isNew || !noteRef.current?.id) return;
 
+    clearTimeout(saveTimerRef.current);
+
     if (mountedRef.current) {
       setSaveState('unsaved');
     }
 
-    clearTimeout(saveTimerRef.current);
+    // Keep edits pending when autosave is disabled.
+    // Manual Save and Ctrl/Cmd + S still call saveNow directly.
+    if (!autosaveEnabled) return;
 
     saveTimerRef.current = setTimeout(() => {
       saveNowRef.current?.();
     }, SAVE_DEBOUNCE);
-  }, [isNew]);
+  }, [isNew, autosaveEnabled]);
+
+  // Cancel queued automatic saves when autosave is switched off.
+  useEffect(() => {
+    if (!autosaveEnabled) {
+      clearTimeout(saveTimerRef.current);
+    }
+  }, [autosaveEnabled]);
 
   // ---------------------------------------------------------------------------
   // Mount / Unmount
@@ -887,7 +904,7 @@ export default function NoteEditor() {
 
   useEffect(() => {
     const handleOnline = () => {
-      if (mountedRef.current) {
+      if (mountedRef.current && autosaveEnabled) {
         saveNowRef.current?.();
       }
     };
@@ -905,7 +922,7 @@ export default function NoteEditor() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [autosaveEnabled]);
 
   // ---------------------------------------------------------------------------
   // Pin
@@ -1330,7 +1347,10 @@ export default function NoteEditor() {
                 onChange={handleTitleChange}
                 onBlur={() => {
                   clearTimeout(saveTimerRef.current);
-                  saveNowRef.current?.();
+
+                  if (autosaveEnabled) {
+                    saveNowRef.current?.();
+                  }
                 }}
                 placeholder="Untitled note"
                 aria-label="Note title"

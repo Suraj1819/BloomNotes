@@ -1,4 +1,6 @@
+
 // src/App.jsx
+
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
@@ -64,14 +66,34 @@ function PrivateRoute({ children }) {
   return children;
 }
 
+// Resolve the user's preferred landing page.
+function DefaultLanding() {
+  const { profile } = useAuth();
+
+  const landingPage = profile?.default_landing_page || 'dashboard';
+
+  switch (landingPage) {
+    case 'notes':
+      return <Navigate to="/app/notes" replace />;
+
+    case 'journal':
+      return <Navigate to="/app/journal" replace />;
+
+    case 'personal-space':
+      return <Navigate to="/app/personal-space" replace />;
+
+    case 'dashboard':
+    default:
+      return <Dashboard />;
+  }
+}
+
 export default function App() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
 
-        {/* =========================================
-            PUBLIC ROUTES
-        ========================================= */}
+        {/* PUBLIC ROUTES */}
 
         <Route
           path="/"
@@ -127,10 +149,7 @@ export default function App() {
           }
         />
 
-
-        {/* =========================================
-            PROTECTED APPLICATION ROUTES
-        ========================================= */}
+        {/* PROTECTED APPLICATION ROUTES */}
 
         <Route
           path="/app"
@@ -140,9 +159,8 @@ export default function App() {
             </PrivateRoute>
           }
         >
-
-          {/* Dashboard */}
-          <Route index element={<Dashboard />} />
+          {/* User's preferred landing page */}
+          <Route index element={<DefaultLanding />} />
 
           {/* Search */}
           <Route path="search" element={<Search />} />
@@ -156,10 +174,8 @@ export default function App() {
           <Route path="pinned" element={<Pinned />} />
           <Route path="recent" element={<Recent />} />
 
-          {/* Archive */}
+          {/* Archive and Trash */}
           <Route path="archive" element={<Archive />} />
-
-          {/* Trash */}
           <Route path="trash" element={<Trash />} />
 
           {/* Folders */}
@@ -176,14 +192,9 @@ export default function App() {
 
           {/* Settings */}
           <Route path="settings" element={<Settings />} />
-
         </Route>
 
-
-        {/* =========================================
-            FALLBACK
-        ========================================= */}
-
+        {/* FALLBACK */}
         <Route
           path="*"
           element={<Navigate to="/" replace />}

@@ -79,7 +79,7 @@ function SectionHeading({ eyebrow, title, description }) {
 }
 
 export default function Settings() {
-  const { profile, refreshProfile, signOut, setProfile } = useAuth();
+  const { user, profile, refreshProfile, signOut, setProfile } = useAuth();
   const { setParentTheme } = useTheme();
   const confirm = useConfirm();
   const navigate = useNavigate();
@@ -343,7 +343,8 @@ export default function Settings() {
     if (ok) delAccount.mutate();
   };
 
-  const initials = getInitials(form.full_name, profile?.email);
+  const accountEmail = user?.email || profile?.email || '';
+  const initials = getInitials(form.full_name, accountEmail);
   const isAvatarUploading = avatarUpload.isPending;
   const isSaving = save.isPending;
 
@@ -364,7 +365,7 @@ export default function Settings() {
         <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-[#E9B9C9]/20 dark:from-black/10 dark:via-transparent dark:to-[#6E304A]/20" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 pb-8 py-6 sm:px-6 sm:py-9 lg:px-8">
+      <div className="relative z-10 mx-auto max-w-7xl px-3 pb-32 pt-4 sm:px-6 sm:pb-28 sm:pt-7 lg:px-8 lg:pb-24">
 
         {/* Page heading */}
         <div className="mb-7 rounded-[28px] border border-white/65 bg-white/55 p-5 shadow-[0_18px_55px_rgba(83,38,57,0.10)] backdrop-blur-md dark:border-white/10 dark:bg-[#21151C]/65 sm:p-7">
@@ -391,29 +392,24 @@ export default function Settings() {
               </div>
             </div>
 
-            <Button
-              onClick={handleSave}
-              loading={isSaving}
-              disabled={isSaving}
-              className="!h-11 w-full shrink-0 !rounded-xl !border-0 !bg-gradient-to-r !from-[#B95F8C] !to-[#C9789F] !px-6 !font-semibold !text-white sm:w-auto"
-            >
-              <Save size={16} />
-              Save changes
-            </Button>
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/70 bg-white/65 px-3.5 py-2 text-xs font-medium text-text-muted shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5">
+              <CheckCircle2 size={14} className="text-accent" />
+              Changes are saved when you select Save
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-[210px_minmax(0,1fr)] lg:gap-8">
 
           {/* Sidebar */}
-          <aside className="md:sticky md:top-6 md:self-start">
-            <div className="rounded-[24px] border border-white/70 bg-white/65 p-2.5 shadow-[0_12px_35px_rgba(83,38,57,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-[#21151C]/70">
+          <aside className="sticky top-2 z-30 -mx-1 self-start md:top-6 md:mx-0">
+            <div className="rounded-[20px] border border-white/75 bg-white/80 p-2 shadow-[0_12px_35px_rgba(83,38,57,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#21151C]/85 sm:rounded-[24px] sm:p-2.5">
 
-              <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
+              <p className="hidden px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted md:block">
                 Preferences
               </p>
 
-              <nav className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+              <nav className="flex snap-x snap-mandatory gap-1 overflow-x-auto overscroll-x-contain pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex-col md:overflow-visible md:pb-0">
                 {sections.map(({ id, label, icon: Icon }) => {
                   const isActive = activeSection === id;
 
@@ -493,7 +489,7 @@ export default function Settings() {
                     {form.full_name || 'Your profile'}
                   </p>
                   <p className="truncate text-xs text-text-muted">
-                    {profile?.email || 'Account'}
+                    {accountEmail || 'Account'}
                   </p>
                 </div>
               </div>
@@ -501,10 +497,10 @@ export default function Settings() {
           </aside>
 
           {/* Main content */}
-          <main className="min-w-0 space-y-7">
+          <main className="min-w-0 space-y-6 sm:space-y-8">
 
             {/* Profile */}
-            <section id="settings-profile" className="scroll-mt-6">
+            <section id="settings-profile" className="scroll-mt-28 sm:scroll-mt-6">
               <SectionHeading
                 eyebrow="Personal information"
                 title="Profile"
@@ -512,8 +508,8 @@ export default function Settings() {
               />
 
               <Card>
-                <CardBody className="space-y-6 p-4 sm:p-6">
-                  <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                <CardBody className="space-y-6 rounded-[22px] p-4 sm:rounded-[26px] sm:p-6 lg:p-7">
+                  <div className="flex flex-col gap-4 min-[420px]:flex-row min-[420px]:items-center sm:gap-5">
 
                     {/* Circular avatar */}
                     <div className="relative shrink-0 self-start">
@@ -630,7 +626,12 @@ export default function Settings() {
                   </Field>
 
                   <Field label="Email address">
-                    <Input value={profile?.email || ''} disabled />
+                    <Input
+                      value={accountEmail}
+                      disabled
+                      placeholder="Email not available"
+                      readOnly
+                    />
                     <p className="mt-1.5 text-xs text-text-muted">
                       Your registered email address cannot be changed here.
                     </p>
@@ -640,7 +641,7 @@ export default function Settings() {
             </section>
 
             {/* Appearance */}
-            <section id="settings-appearance" className="scroll-mt-6">
+            <section id="settings-appearance" className="scroll-mt-28 sm:scroll-mt-6">
               <div className="flex items-end justify-between gap-3">
                 <SectionHeading
                   eyebrow="Personalize"
@@ -659,13 +660,13 @@ export default function Settings() {
               </div>
 
               <Card>
-                <CardBody className="space-y-6 p-4 sm:p-6">
+                <CardBody className="space-y-6 rounded-[22px] p-4 sm:rounded-[26px] sm:p-6 lg:p-7">
                   <div>
                     <p className="mb-3 text-sm font-semibold text-text-main">
                       Color theme
                     </p>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-2.5 min-[480px]:grid-cols-2 lg:grid-cols-3">
                       {[
                         { id: 'light', label: 'Sakura Blossom', Icon: Sun },
                         { id: 'dark', label: 'Midnight Rose', Icon: Moon },
@@ -675,7 +676,7 @@ export default function Settings() {
                           key={id}
                           type="button"
                           onClick={() => handleTheme(id)}
-                          className={`flex items-center gap-3 rounded-xl border p-3.5 text-sm transition-all ${
+                          className={`flex min-w-0 items-center gap-3 rounded-2xl border p-3 text-left text-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm sm:p-3.5 ${
                             form.parent_theme === id
                               ? 'border-accent bg-highlight text-accent ring-1 ring-accent/20'
                               : 'border-border text-text-main hover:bg-highlight'
@@ -747,7 +748,7 @@ export default function Settings() {
             </section>
 
             {/* Editor */}
-            <section id="settings-editor" className="scroll-mt-6">
+            <section id="settings-editor" className="scroll-mt-28 sm:scroll-mt-6">
               <SectionHeading
                 eyebrow="Writing experience"
                 title="Editor"
@@ -755,7 +756,7 @@ export default function Settings() {
               />
 
               <Card>
-                <CardBody className="space-y-6 p-4 sm:p-6">
+                <CardBody className="space-y-6 rounded-[22px] p-4 sm:rounded-[26px] sm:p-6 lg:p-7">
                   <Switch
                     checked={form.autosave_enabled}
                     onChange={(value) =>
@@ -813,7 +814,7 @@ export default function Settings() {
             </section>
 
             {/* Notifications */}
-            <section id="settings-notifications" className="scroll-mt-6">
+            <section id="settings-notifications" className="scroll-mt-28 sm:scroll-mt-6">
               <SectionHeading
                 eyebrow="Stay updated"
                 title="Notifications"
@@ -821,7 +822,7 @@ export default function Settings() {
               />
 
               <Card>
-                <CardBody className="space-y-5 p-4 sm:p-6">
+                <CardBody className="space-y-5 rounded-[22px] p-4 sm:rounded-[26px] sm:p-6 lg:p-7">
                   <Switch
                     checked={form.notif_reminders}
                     onChange={(value) =>
@@ -846,7 +847,7 @@ export default function Settings() {
             </section>
 
             {/* Security */}
-            <section id="settings-security" className="scroll-mt-6">
+            <section id="settings-security" className="scroll-mt-28 sm:scroll-mt-6">
               <SectionHeading
                 eyebrow="Account protection"
                 title="Privacy & Security"
@@ -854,7 +855,7 @@ export default function Settings() {
               />
 
               <Card>
-                <CardBody className="space-y-4 p-4 sm:p-6">
+                <CardBody className="space-y-4 rounded-[22px] p-4 sm:rounded-[26px] sm:p-6 lg:p-7">
                   {[
                     'Sessions expire after 24 hours of inactivity.',
                     'Database tables use Row Level Security.',
@@ -881,7 +882,7 @@ export default function Settings() {
                       Manage your current session or permanently delete your account.
                     </p>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:flex-wrap">
                       <Button
                         variant="outline"
                         onClick={() => signOut()}
@@ -904,15 +905,24 @@ export default function Settings() {
               </Card>
             </section>
 
-            {/* Footer */}
-            <div className="flex flex-col items-center justify-between gap-2 py-3 sm:flex-row">
-              <p className="text-xs text-text-muted">
-                BloomNotes · Your personal writing space
-              </p>
-              <p className="text-xs text-text-muted">
-                Your preferences are saved to your account.
-              </p>
-            </div>
+            {/* Responsive save footer */}
+            <footer className="sticky bottom-2 z-30 -mx-1 mt-8 rounded-[22px] border border-white/75 bg-white/85 p-3 shadow-[0_16px_45px_rgba(83,38,57,0.16)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#21151C]/90 sm:bottom-4 sm:mx-0 sm:flex sm:items-center sm:justify-between sm:gap-4 sm:rounded-[24px] sm:px-5 sm:py-4">
+              <div className="mb-3 min-w-0 sm:mb-0">
+                <p className="text-sm font-semibold text-text-main">Save your preferences</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-text-muted">
+                  Your changes will be applied to your BloomNotes account.
+                </p>
+              </div>
+              <Button
+                onClick={handleSave}
+                loading={isSaving}
+                disabled={isSaving}
+                className="!h-11 w-full shrink-0 !rounded-xl !border-0 !bg-gradient-to-r !from-[#B95F8C] !to-[#C9789F] !px-6 !font-semibold !text-white shadow-md shadow-[#B95F8C]/20 transition hover:-translate-y-0.5 hover:shadow-lg sm:w-auto"
+              >
+                <Save size={16} />
+                Save changes
+              </Button>
+            </footer>
           </main>
         </div>
       </div>
