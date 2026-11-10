@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '../ui/Button.jsx';
 import { Dialog } from '../ui/Dialog.jsx';
@@ -200,6 +200,49 @@ export function EditorToolbar({ editor }) {
   const [fontFamily, setFontFamily] = useState('Calibri');
   const [fontSize, setFontSize] = useState('16px');
 
+  // Keep toolbar controls synchronized with the current editor selection.
+  const syncTypography = useCallback(() => {
+    if (!editor) return;
+
+    // An empty document always starts with the clean 16px default.
+    if (editor.state.doc.textContent.length === 0) {
+      setFontSize('16px');
+      setFontFamily('Calibri');
+      return;
+    }
+
+    const textStyle = editor.getAttributes('textStyle');
+    const selectedSize = textStyle.fontSize;
+    const selectedFamily = editor.getAttributes('textStyle').fontFamily;
+
+    setFontSize(
+      selectedSize && FONT_SIZES.includes(selectedSize)
+        ? selectedSize
+        : selectedSize
+          ? selectedSize
+          : '16px'
+    );
+    setFontFamily(selectedFamily || 'Calibri');
+  }, [editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+
+    syncTypography();
+
+    editor.on('selectionUpdate', syncTypography);
+    editor.on('transaction', syncTypography);
+    editor.on('focus', syncTypography);
+    editor.on('blur', syncTypography);
+
+    return () => {
+      editor.off('selectionUpdate', syncTypography);
+      editor.off('transaction', syncTypography);
+      editor.off('focus', syncTypography);
+      editor.off('blur', syncTypography);
+    };
+  }, [editor, syncTypography]);
+
   if (!editor) return null;
 
   // ---------------------------------------------------------------------------
@@ -252,12 +295,35 @@ export function EditorToolbar({ editor }) {
 
   const handleFontSize = (event) => {
     const value = event.target.value;
-    setFontSize(value);
 
     editor.chain()
       .focus()
-      .setMark('textStyle', { fontSize: value })
+      .setFontSize(value)
       .run();
+
+    setFontSize(value);
+  };
+
+  const resetFontSize = () => {
+    editor.chain()
+      .focus()
+      .unsetFontSize()
+      .run();
+
+    setFontSize('16px');
+  };
+
+  const changeFontSize = (direction) => {
+    const current = Number.parseInt(fontSize, 10) || 16;
+    const next = Math.min(60, Math.max(10, current + direction * 2));
+    const value = `${next}px`;
+
+    editor.chain()
+      .focus()
+      .setFontSize(value)
+      .run();
+
+    setFontSize(value);
   };
 
   // ---------------------------------------------------------------------------
@@ -415,12 +481,39 @@ export function EditorToolbar({ editor }) {
               onChange={handleFontSize}
               className="w-[76px]"
             >
+              {!FONT_SIZES.includes(fontSize) && (
+                <option value={fontSize}>{fontSize}</option>
+              )}
               {FONT_SIZES.map((size) => (
                 <option key={size} value={size}>
                   {parseInt(size, 10)}
                 </option>
               ))}
             </ToolbarSelect>
+
+            <TBtn
+              title="Decrease font size"
+              onClick={() => changeFontSize(-1)}
+              disabled={Number.parseInt(fontSize, 10) <= 10}
+            >
+              <Minus size={14} />
+            </TBtn>
+
+            <TBtn
+              title="Increase font size"
+              onClick={() => changeFontSize(1)}
+              disabled={Number.parseInt(fontSize, 10) >= 60}
+            >
+              <Plus size={14} />
+            </TBtn>
+
+            <TBtn
+              title="Reset font size to 16px"
+              onClick={resetFontSize}
+              disabled={fontSize === '16px'}
+            >
+              <span className="text-[10px] font-bold">16</span>
+            </TBtn>
           </ToolbarGroup>
 
           <ToolbarDivider />

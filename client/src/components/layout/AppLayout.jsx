@@ -12,14 +12,20 @@ export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const toggleSidebar = () => {
+    setCollapsed((prev) => !prev);
+  };
+
+  const closeMobileSidebar = () => {
+    setMobileOpen(false);
+  };
+
   return (
     <div
       className="
-        relative isolate
-        flex h-screen
+        relative isolate flex h-screen w-full
         overflow-hidden
-        bg-[#f8f5ff]
-        dark:bg-[#17131d]
+        bg-[#f8f5ff] dark:bg-[#17131d]
       "
       style={{
         backgroundImage: `url(${lavenderBg})`,
@@ -32,10 +38,8 @@ export default function AppLayout() {
       <div
         aria-hidden="true"
         className="
-          pointer-events-none
-          absolute inset-0 z-0
-          bg-white/15
-          dark:bg-black/25
+          pointer-events-none absolute inset-0 z-0
+          bg-white/15 dark:bg-black/25
         "
       />
 
@@ -45,17 +49,16 @@ export default function AppLayout() {
       {/* Sidebar */}
       <Sidebar
         collapsed={collapsed}
-        setCollapsed={setCollapsed}
+        onToggle={toggleSidebar}
         mobileOpen={mobileOpen}
-        setMobileOpen={setMobileOpen}
+        onCloseMobile={closeMobileSidebar}
       />
 
       {/* Main application area */}
       <div
         className="
           relative z-10
-          flex min-w-0 min-h-0
-          flex-1 flex-col
+          flex min-w-0 min-h-0 flex-1 flex-col
         "
       >
         {/* Top navigation */}
@@ -66,9 +69,8 @@ export default function AppLayout() {
         {/* Page content */}
         <main
           className="
-            relative min-h-0
-            flex-1 overflow-y-auto
-            overflow-x-hidden
+            relative min-h-0 min-w-0
+            flex-1 overflow-y-auto overflow-x-hidden
           "
         >
           <Outlet />

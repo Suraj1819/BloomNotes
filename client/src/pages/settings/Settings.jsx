@@ -102,7 +102,6 @@ export default function Settings() {
       floral_intensity: profile.floral_intensity ?? 60,
       reduced_motion: !!profile.reduced_motion,
       floating_petals: profile.floating_petals ?? true,
-      editor_font_size: profile.editor_font_size ?? 15,
       autosave_enabled: profile.autosave_enabled ?? true,
       default_landing_page: profile.default_landing_page || 'dashboard',
       notif_reminders: profile.notif_reminders ?? true,
@@ -324,7 +323,6 @@ export default function Settings() {
       floral_intensity: 60,
       reduced_motion: false,
       floating_petals: true,
-      editor_font_size: 15,
     });
 
     setParentTheme('system');
@@ -765,32 +763,6 @@ export default function Settings() {
                     label="Autosave"
                     description="Automatically save notes while you write."
                   />
-
-                  <div className="border-t border-border" />
-
-                  <div>
-                    <div className="mb-3 flex justify-between text-sm">
-                      <span className="font-medium text-text-main">
-                        Editor font size
-                      </span>
-                      <span className="text-xs tabular-nums text-text-muted">
-                        {form.editor_font_size}px
-                      </span>
-                    </div>
-
-                    <input
-                      type="range"
-                      min="12"
-                      max="22"
-                      value={form.editor_font_size}
-                      onChange={(event) =>
-                        update({
-                          editor_font_size: Number(event.target.value),
-                        })
-                      }
-                      className="w-full accent-accent"
-                    />
-                  </div>
 
                   <div className="border-t border-border" />
 

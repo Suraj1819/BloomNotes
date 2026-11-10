@@ -93,55 +93,105 @@ export function Sidebar({
           <div className="absolute -left-20 bottom-20 h-48 w-48 rounded-full bg-accent-2/10 blur-[70px]" />
         </div>
 
-        {/* Header */}
-        <div
-          className={cn(
-            'relative z-10 flex h-16 min-h-16 shrink-0 items-center',
-            'border-b border-border/40',
-            collapsed
-              ? 'justify-center px-2 md:justify-center'
-              : 'justify-between px-4'
-          )}
-        >
-          <div className="flex min-w-0 items-center overflow-hidden">
-            <Logo size={28} withText={!collapsed} />
-          </div>
+        
+{/* Header */}
+<div
+  className={cn(
+    'group relative z-10 flex h-16 min-h-16 shrink-0 items-center',
+    'border-b border-border/40 transition-all duration-300',
+    collapsed
+      ? 'justify-center px-2'
+      : 'justify-between px-4'
+  )}
+>
+  {/* Bloom Logo */}
+  <div
+    className={cn(
+      'relative flex items-center justify-center',
+      collapsed && 'h-10 w-10 rounded-xl'
+    )}
+  >
+    <div
+      className={cn(
+        'transition-all duration-200',
+        collapsed && 'group-hover:scale-90 group-hover:opacity-0'
+      )}
+    >
+      <Logo size={28} withText={!collapsed} />
+    </div>
 
-          {/* Desktop Collapse */}
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-expanded={!collapsed}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className={cn(
-              'hidden md:flex shrink-0 items-center justify-center',
-              'h-8 w-8 rounded-lg',
-              'border border-transparent',
-              'text-text-muted hover:text-accent',
-              'hover:bg-accent/10 hover:border-accent/15',
-              'transition-all duration-200',
-              collapsed &&
-                'absolute left-[68px] top-4 z-30 -translate-x-1/2 bg-card/90 border-border/60 shadow-md'
-            )}
-          >
-            {collapsed ? (
-              <PanelLeft size={17} />
-            ) : (
-              <PanelLeftClose size={17} />
-            )}
-          </button>
+    {/* Expand overlay on collapsed logo */}
+    {collapsed && (
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label="Expand sidebar"
+        title="Expand sidebar"
+        className="
+          absolute inset-0 z-20
+          flex items-center justify-center
+          rounded-xl
+          border border-transparent
+          bg-accent/0 text-accent
+          opacity-0
+          transition-all duration-200
+          hover:border-accent/20
+          hover:bg-accent/10
+          group-hover:opacity-100
+          focus-visible:opacity-100
+          focus-visible:outline-none
+          focus-visible:ring-2
+          focus-visible:ring-accent
+        "
+      >
+        <PanelLeft size={19} strokeWidth={2} />
+      </button>
+    )}
+  </div>
 
-          {/* Mobile Close */}
-          <button
-            type="button"
-            onClick={onCloseMobile}
-            aria-label="Close sidebar"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-highlight hover:text-text-main md:hidden"
-          >
-            <X size={18} />
-          </button>
-        </div>
+  {/* Desktop Collapse Button - Expanded only */}
+  {!collapsed && (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label="Collapse sidebar"
+      title="Collapse sidebar"
+      aria-expanded="true"
+      className="
+        hidden md:flex
+        h-8 w-8 shrink-0
+        items-center justify-center
+        rounded-lg
+        border border-transparent
+        text-text-muted
+        transition-all duration-200
+        hover:border-accent/15
+        hover:bg-accent/10
+        hover:text-accent
+      "
+    >
+      <PanelLeftClose size={17} />
+    </button>
+  )}
+
+  {/* Mobile Close */}
+  <button
+    type="button"
+    onClick={onCloseMobile}
+    aria-label="Close sidebar"
+    className="
+      flex h-8 w-8 shrink-0
+      items-center justify-center
+      rounded-lg text-text-muted
+      transition-colors
+      hover:bg-highlight hover:text-text-main
+      md:hidden
+    "
+  >
+    <X size={18} />
+  </button>
+</div>
+
 
         {/* Navigation */}
         <nav
